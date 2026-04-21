@@ -3,9 +3,18 @@ package com.vaultlink.app.dto
 import jakarta.validation.constraints.NotBlank
 
 data class UpdatePickupRequest(
-    @field:NotBlank(message = "Consignment ID is required")
-    val consignmentId: String,
+    @field:NotBlank(message = "Record ID is required")
+    val recordId: String? = null,
 
-    @field:NotBlank(message = "Estimated pickup date is required")
-    val estimatedPickupDate: String
+    val consignmentId: String? = null,
+
+    val pod: String? = null,
+
+    val status: String? = null,
+
+    val actualPickupDate: String? = null,
+
+    val estimatedPickupDate: String? = null,
+
+    val deliveryDate: String? = null
 )

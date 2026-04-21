@@ -32,7 +32,7 @@ enum class EnSFObjects(val value: String) {
     CONTENT_VERSION("/sobjects/ContentVersion/"),
     CONTENT_DOCUMENT_LINK("/sobjects/ContentDocumentLink/"),
     ESTAMP("/sobjects/e_Stamp_Denominations__c/"),
-    X_SELL_PRODUCT("/sobjects/X_Sell_Products__c/"),
+    DOCUMENT_PICKUP("/sobjects/Documents_Pickup__c/"),
     SERVICE_AND_DISBURSAL("/sobjects/Service_and_Disbursal__c/");
 
 }

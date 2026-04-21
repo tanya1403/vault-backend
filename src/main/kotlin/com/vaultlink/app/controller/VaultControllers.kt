@@ -2,9 +2,10 @@ package com.vaultlink.app.controller
 
 import com.vaultlink.app.dto.ApiResponse
 import com.vaultlink.app.dto.LoginRequest
+import com.vaultlink.app.dto.LoginResponse
 import com.vaultlink.app.dto.LogoutRequest
 import com.vaultlink.app.dto.LogoutResponse
-import com.vaultlink.app.dto.LoginResponse
+import com.vaultlink.app.dto.PickupRequest
 import com.vaultlink.app.dto.RefreshTokenRequest
 import com.vaultlink.app.dto.RefreshTokenResponse
 import com.vaultlink.app.dto.UpdatePickupRequest
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/vault/v1")
-class AuthController(
+class VaultController(
     private val vaultService: VaultService,
 ) {
 
@@ -81,23 +82,23 @@ class AuthController(
     @GetMapping("/pickup-requests")
     fun fetchPickupRequestsByStatus(
         @RequestParam(required = true) status: String
-    ): ResponseEntity<String> =
+    ): ResponseEntity<ApiResponse<List<PickupRequest>>> =
         vaultService.getPickupRequestsByStatus(status)
 
-//    @PostMapping(
-//        "/update-pickup-date",
-//        produces = [MediaType.APPLICATION_JSON_VALUE],
-//        consumes = [MediaType.APPLICATION_JSON_VALUE]
-//    )
-//    fun updatePickupDate(
-//        @Valid @RequestBody request: UpdatePickupRequest
-//    ): ResponseEntity<ApiResponse<Any>> =
-//        vaultService.updatePickupRequest(request)
+    @PostMapping(
+        "/update-pickup-date",
+        produces = [MediaType.APPLICATION_JSON_VALUE],
+        consumes = [MediaType.APPLICATION_JSON_VALUE]
+    )
+    fun updatePickupDate(
+        @Valid @RequestBody request: UpdatePickupRequest
+    ): ResponseEntity<Any> =
+        vaultService.updatePickupRequest(request)
 
 
-    @PostMapping("/pickup-requests")
-    fun updatePickUpDetails(
-        @RequestParam(required = true) status: String
-    ): ResponseEntity<String> =
-        vaultService.getPickupRequestsByStatus(status)
+//    @PostMapping("/pickup-requests")
+//    fun updatePickUpDetails(
+//        @RequestParam(required = true) status: String
+//    ): ResponseEntity<String> =
+//        vaultService.getPickupRequestsByStatus(status)
 }

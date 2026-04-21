@@ -1,11 +1,12 @@
 package com.vaultlink.app.service
 
+import com.vaultlink.app.dto.ApiResponse
 import com.vaultlink.app.dto.LoginRequest
 import com.vaultlink.app.dto.LoginResponse
+import com.vaultlink.app.dto.PickupRequest
 import com.vaultlink.app.dto.RefreshTokenRequest
 import com.vaultlink.app.dto.RefreshTokenResponse
 import com.vaultlink.app.dto.UpdatePickupRequest
-import com.vaultlink.app.dto.ApiResponse
 
 import com.vaultlink.app.manager.SalesforceManager
 import com.vaultlink.app.model.LoginAudit
@@ -114,20 +115,33 @@ class VaultService(
 
     @Transactional
     fun refreshToken(request: RefreshTokenRequest): RefreshTokenResponse {
+        logger.debug("Attempting to refresh token: ${request.refreshToken.take(8)}...")
+        
         val storedRefreshToken = refreshTokenRepository.findByToken(request.refreshToken)
-            .orElseThrow { BadCredentialsException("Invalid refresh token") }
+            .orElseGet {
+                logger.debug("Refresh token not found in database")
+                throw BadCredentialsException("Invalid refresh token")
+            }
 
-        if (storedRefreshToken.isRevoked || storedRefreshToken.expiresAt.isBefore(LocalDateTime.now())) {
-            throw BadCredentialsException("Refresh token expired or revoked")
+        if (storedRefreshToken.isRevoked) {
+            logger.debug("Refresh token is revoked (revokedAt: ${storedRefreshToken.revokedAt})")
+            throw BadCredentialsException("Session expired: refresh token revoked")
+        }
+        
+        if (storedRefreshToken.expiresAt.isBefore(LocalDateTime.now())) {
+            logger.debug("Refresh token is expired (expiresAt: ${storedRefreshToken.expiresAt})")
+            throw BadCredentialsException("Session expired: refresh token expired")
         }
 
         val user = storedRefreshToken.user
         if (!user.enabled) {
+            logger.debug("User ${user.username} is disabled")
             throw BadCredentialsException("User account is disabled")
         }
 
         // Generate new access token
         val newAccessToken = jwtService.generateToken(user)
+        logger.debug("Successfully generated new access token for user: ${user.username}")
 
         // Update last used timestamp
         val updatedRefreshToken = storedRefreshToken.copy(
@@ -194,46 +208,38 @@ class VaultService(
     }
 
 
-    fun getPickupRequestsByStatus(status: String): ResponseEntity<String> {
+    fun getPickupRequestsByStatus(status: String): ResponseEntity<ApiResponse<List<PickupRequest>>> {
         if (status.isBlank()) {
             return ResponseEntity.badRequest()
-                .body(
-                    JSONObject()
-                        .put("success", false)
-                        .put("message", "Status parameter is required")
-                        .toString()
-                )
+                .body(ApiResponse.failure("Status parameter is required") as ApiResponse<List<PickupRequest>>)
         }
 
         return try {
             val records = sfManager.fetchPickupRequestsByStatus(status)
-            if (records == null || records.length() == 0) {
-                ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(
-                        JSONObject()
-                            .put("success", false)
-                            .put("message", "No pickup request found for status '$status'")
-                            .toString()
-                    )
-            } else {
-                log("getPickupRequestsByStatus - Fetched pickup request for status='$status'")
+            println("DEBUG: Backend fetched ${records?.size} records for status: $status")
+            if (!records.isNullOrEmpty()) {
+                println("DEBUG: First record: ${records[0]}")
+            }
+            if (records.isNullOrEmpty()) {
                 ResponseEntity.ok(
-                    JSONObject()
-                        .put("success", true)
-                        .put("message", "Pickup request fetched successfully")
-                        .put("data", records)
-                        .toString()
+                    ApiResponse.success(
+                        message = "No pickup request found for status '$status'",
+                        data = emptyList()
+                    )
+                )
+            } else {
+                log("getPickupRequestsByStatus - Fetched ${records.size} pickup requests for status='$status'")
+                ResponseEntity.ok(
+                    ApiResponse.success(
+                        message = "Pickup requests fetched successfully",
+                        data = records
+                    )
                 )
             }
         } catch (e: Exception) {
             log("getPickupRequestsByStatus - Exception: ${e.message}")
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(
-                    JSONObject()
-                        .put("success", false)
-                        .put("message", "Failed to fetch from Salesforce")
-                        .toString()
-                )
+                .body(ApiResponse.failure("Failed to fetch from Salesforce: ${e.message}") as ApiResponse<List<PickupRequest>>)
         }
     }
 
@@ -250,7 +256,7 @@ class VaultService(
 
         return try {
             val records = sfManager.fetchPickupRequestsByStatus(status)
-            if (records == null || records.length() == 0) {
+            if (records == null || records.isEmpty()) {
                 ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(
                         JSONObject()
@@ -279,36 +285,58 @@ class VaultService(
                 )
         }
     }
-//    fun updatePickupRequest(request: UpdatePickupRequest): ResponseEntity<ApiResponse<Any>> {
-//        return try {
-//            val sfResponse = sfManager.updatePickupRequest(request.consignmentId, request.estimatedPickupDate)
-//
-//            if (sfResponse != null && sfResponse.isSuccess) {
-//                ResponseEntity.ok(
-//                    ApiResponse.success(
-//                        message = "Pickup date updated successfully",
-//                        data = null
-//                    )
-//                )
-//            } else {
-//                val errorMessage = sfResponse?.message ?: "Unknown error"
-//                ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .body(
-//                        ApiResponse.failure(
-//                            message = "Failed to update Salesforce: $errorMessage"
-//                        ) as ApiResponse<Any>
-//                    )
-//            }
-//        } catch (e: Exception) {
-//            logger.error("Error updating pickup request", e)
-//            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                .body(
-//                    ApiResponse.failure(
-//                        message = "An error occurred while updating pickup request: ${e.message}"
-//                    ) as ApiResponse<Any>
-//                )
-//        }
-//    }
+
+    fun updatePickupRequest(request: UpdatePickupRequest?): ResponseEntity<Any> {
+        if (request == null) {
+            logger.error("updatePickupRequest - Received null request body")
+            return ResponseEntity.badRequest().body(ApiResponse.failure("Request body is missing"))
+        }
+
+        return try {
+            log("updatePickupRequest - Processing update for recordId: ${request.recordId}, status: ${request.status}")
+            
+            // Check if manager is properly injected
+            if (sfManager == null) {
+                logger.error("updatePickupRequest - sfManager is null (injection failure)")
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.failure("Internal service error: Salesforce integration unavailable"))
+            }
+
+            // Using positional arguments to avoid CGLIB/Named parameter conflicts in Kotlin
+            val success = sfManager.updatePickupRequest(
+                request.recordId,
+                request.estimatedPickupDate,
+                request.pod,
+                request.status,
+                request.actualPickupDate,
+                request.deliveryDate
+            )
+
+            if (success) {
+                ResponseEntity.ok(
+                    ApiResponse.success(
+                        message = "Pickup date updated successfully",
+                        data = null
+                    )
+                )
+            } else {
+                ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(
+                        ApiResponse.failure(
+                            message = "Failed to update Salesforce record"
+                        )
+                    )
+            }
+        } catch (e: Exception) {
+            logger.error("Error updating pickup request", e)
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(
+                    ApiResponse.failure(
+                        message = "An error occurred while updating pickup request: ${e.message}"
+                    )
+                )
+        }
+    }
 }
 
 

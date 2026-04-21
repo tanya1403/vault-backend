@@ -22,9 +22,9 @@ class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BadCredentialsException::class)
-    fun handleBadCredentials(): ResponseEntity<ApiResponse<Nothing>> =
+    fun handleBadCredentials(ex: BadCredentialsException): ResponseEntity<ApiResponse<Nothing>> =
         ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-            .body(ApiResponse.failure("Invalid username or password"))
+            .body(ApiResponse.failure(ex.message ?: "Invalid username or password"))
 
     @ExceptionHandler(Exception::class)
     fun handleUnhandled(): ResponseEntity<ApiResponse<Nothing>> =

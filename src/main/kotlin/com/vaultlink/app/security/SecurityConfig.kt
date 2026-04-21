@@ -31,6 +31,7 @@ class SecurityConfig(
             .authorizeHttpRequests {
                 it.requestMatchers(HttpMethod.POST, "/vault/v1/login").permitAll()
                 it.requestMatchers(HttpMethod.POST, "/vault/v1/refresh").permitAll()
+                it.requestMatchers(HttpMethod.GET, "/vault/v1/pickup-requests").permitAll()
                 it.requestMatchers("/actuator/health", "/error").permitAll()
                 it.anyRequest().authenticated()
             }
