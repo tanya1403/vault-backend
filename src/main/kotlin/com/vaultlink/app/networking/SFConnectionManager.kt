@@ -308,8 +308,6 @@ class SFConnection(
         val httpClient: HttpClient = HttpClientBuilder.create().build()
         val uri = baseUri + endpoint
 
-        println(uri)
-
         val httpPatch = HttpPatch(uri)
         httpPatch.addHeader(oauthHeader)
         httpPatch.addHeader(prettyPrintHeader)

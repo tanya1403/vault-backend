@@ -18,9 +18,11 @@ import com.vaultlink.app.dto.UpdatePickupRequest
 import com.vaultlink.app.service.VaultManagementService
 
 import com.vaultlink.app.service.VaultService
+import com.vaultlink.app.utills.OneResponse
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
 import org.json.JSONObject
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -29,7 +31,8 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/vault/v1")
 class VaultController(
     private val vaultService: VaultService,
-    private val vaultManagementService: VaultManagementService
+    private val vaultManagementService: VaultManagementService,
+    @Autowired val oneResponse: OneResponse
 ) {
 
     @PostMapping(
@@ -38,29 +41,27 @@ class VaultController(
         consumes = [MediaType.APPLICATION_JSON_VALUE]
     )
     fun login(
-        @Valid @RequestBody request: LoginRequest,
-//        httpRequest: HttpServletRequest,
-    ): ResponseEntity<ApiResponse<LoginResponse>> =
-        ResponseEntity.ok(
-            ApiResponse.success(
-                message = "Login successful",
-//                data = vaultService.login(request, httpRequest),
-                data = vaultService.login(request),
-            )
-        )
+        @RequestBody request: LoginRequest,
+    ): ResponseEntity<String> {
+        return try{
+            vaultService.login(request)
+        }catch(e:Exception){
+            oneResponse.defaultFailureResponse
+        }
+    }
 
     @PostMapping(
         "/refresh",
         produces = [MediaType.APPLICATION_JSON_VALUE],
         consumes = [MediaType.APPLICATION_JSON_VALUE]
     )
-    fun refreshToken(@Valid @RequestBody request: RefreshTokenRequest): ResponseEntity<ApiResponse<RefreshTokenResponse>> =
-        ResponseEntity.ok(
-            ApiResponse.success(
-                message = "Token refreshed successfully",
-                data = vaultService.refreshToken(request),
-            )
-        )
+    fun refreshToken(@Valid @RequestBody request: RefreshTokenRequest): ResponseEntity<String> {
+        return try{
+            vaultService.refreshToken(request)
+        }catch(e:Exception){
+            oneResponse.defaultFailureResponse
+        }
+    }
 
     @PostMapping(
         "/logout",
@@ -104,12 +105,6 @@ class VaultController(
     ): ResponseEntity<Any> =
         vaultService.updatePickupRequest(request)
 
-
-//    @PostMapping("/pickup-requests")
-//    fun updatePickUpDetails(
-//        @RequestParam(required = true) status: String
-//    ): ResponseEntity<String> =
-//        vaultService.getPickupRequestsByStatus(status)
 
     @GetMapping("/branches")
     fun getBranches(
