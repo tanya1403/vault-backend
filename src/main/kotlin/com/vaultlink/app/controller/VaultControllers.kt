@@ -1,18 +1,26 @@
 package com.vaultlink.app.controller
 
+import BranchDTO
+import CursorResponse
+import DocumentDTO
+import LaiDTO
+import MarkVaultRequest
+import ResponseDto
 import com.vaultlink.app.dto.ApiResponse
 import com.vaultlink.app.dto.LoginRequest
 import com.vaultlink.app.dto.LoginResponse
 import com.vaultlink.app.dto.LogoutRequest
 import com.vaultlink.app.dto.LogoutResponse
-import com.vaultlink.app.dto.PickupRequest
+import com.vaultlink.app.dto.LoginResponse
 import com.vaultlink.app.dto.RefreshTokenRequest
 import com.vaultlink.app.dto.RefreshTokenResponse
 import com.vaultlink.app.dto.UpdatePickupRequest
+import com.vaultlink.app.service.VaultManagementService
 
 import com.vaultlink.app.service.VaultService
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
+import org.json.JSONObject
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -21,6 +29,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/vault/v1")
 class VaultController(
     private val vaultService: VaultService,
+    private val vaultManagementService: VaultManagementService
 ) {
 
     @PostMapping(
@@ -101,4 +110,42 @@ class VaultController(
 //        @RequestParam(required = true) status: String
 //    ): ResponseEntity<String> =
 //        vaultService.getPickupRequestsByStatus(status)
+    @PostMapping("/pickup-requests")
+    fun updatePickUpDetails(
+        @RequestParam(required = true) status: String
+    ): ResponseEntity<String> =
+        vaultService.getPickupRequestsByStatus(status)
+
+
+    @GetMapping("/branches")
+    fun getBranches(
+        @RequestParam(required = false) search: String?,
+        @RequestParam(required = false) lastBranch: String?
+    ): ResponseEntity<CursorResponse<BranchDTO>> {
+        return ResponseEntity.ok(vaultManagementService.getBranches(search, lastBranch))
+    }
+
+    @GetMapping("/lais")
+    fun getLais(
+        @RequestParam branchId: String,
+        @RequestParam(required = false) search: String?,
+        @RequestParam(required = false) lastLai: String?
+    ): ResponseEntity<CursorResponse<LaiDTO>> {
+        return ResponseEntity.ok(vaultManagementService.getLais(branchId, search, lastLai))
+    }
+
+    @GetMapping("/documents")
+    fun getDocuments(
+        @RequestParam lai: String,
+        @RequestParam(required = false) lastCreatedDate: String?
+    ): ResponseEntity<CursorResponse<DocumentDTO>> {
+        val response = vaultManagementService.getDocuments(lai, lastCreatedDate)
+        return ResponseEntity.ok(response)
+    }
+    @PostMapping("/vault/document/mark-vaulted")
+    fun markVaulted(
+        @RequestBody request: MarkVaultRequest
+    ): ResponseEntity<ResponseDto> {
+        return ResponseEntity.ok(vaultManagementService.markDocumentAsVaulted(request))
+    }
 }

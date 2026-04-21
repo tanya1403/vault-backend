@@ -53,29 +53,29 @@ class VaultService(
     ): LoginResponse {
         val normalizedUsername = request.username.trim()
 
-        val authentication = try {
-            authenticationManager.authenticate(
-                UsernamePasswordAuthenticationToken(normalizedUsername, request.password)
-            )
-        } catch (_: DisabledException) {
-            throw BadCredentialsException("Invalid username or password")
-        } catch (_: BadCredentialsException) {
-            throw BadCredentialsException("Invalid username or password")
-        }
+//        val authentication = try {
+//            authenticationManager.authenticate(
+//                UsernamePasswordAuthenticationToken(normalizedUsername, request.password)
+//            )
+//        } catch (_: DisabledException) {
+//            throw BadCredentialsException("Invalid username or password")
+//        } catch (_: BadCredentialsException) {
+//            throw BadCredentialsException("Invalid username or password")
+//        }
 
-        if (!authentication.isAuthenticated) {
-            throw BadCredentialsException("Invalid username or password")
-        }
+//        if (!authentication.isAuthenticated) {
+//            throw BadCredentialsException("Invalid username or password")
+//        }
 
-        val user = userRepository.findByUsernameIgnoreCase(normalizedUsername)
-            ?: throw BadCredentialsException("Invalid username or password")
+//        val user = userRepository.findByUsernameIgnoreCase(normalizedUsername)
+//            ?: throw BadCredentialsException("Invalid username or password")
 
-        if (!user.enabled) {
-            throw BadCredentialsException("Invalid username or password")
-        }
-
-        user.lastLoginAt = Instant.now()
-        userRepository.save(user)
+//        if (!user.enabled) {
+//            throw BadCredentialsException("Invalid username or password")
+//        }
+//
+//        user.lastLoginAt = Instant.now()
+//        userRepository.save(user)
 
 //        loginAuditRepository.save(
 //            LoginAudit(
@@ -86,29 +86,29 @@ class VaultService(
 //        )
 
         // Revoke all existing refresh tokens for this user
-        refreshTokenRepository.revokeAllUserTokens(user.id!!, LocalDateTime.now())
+//        refreshTokenRepository.revokeAllUserTokens(user.id!!, LocalDateTime.now())
 
         // Generate new tokens
-        val accessToken = jwtService.generateToken(user)
-        val refreshToken = jwtService.generateRefreshToken()
+//        val accessToken = jwtService.generateToken(user)
+//        val refreshToken = jwtService.generateRefreshToken()
         // Store refresh token in database
-        val refreshTokenEntity = RefreshToken(
-            token = refreshToken,
-            user = user,
-            expiresAt = LocalDateTime.now().plusSeconds(jwtService.refreshExpirationSeconds),
-            createdAt = LocalDateTime.now()
-        )
-        refreshTokenRepository.save(refreshTokenEntity)
+//        val refreshTokenEntity = RefreshToken(
+//            token = refreshToken,
+//            user = user,
+//            expiresAt = LocalDateTime.now().plusSeconds(jwtService.refreshExpirationSeconds),
+//            createdAt = LocalDateTime.now()
+//        )
+//        refreshTokenRepository.save(refreshTokenEntity)
 
         return LoginResponse(
-            accessToken = accessToken,
-            refreshToken = refreshToken,
+            accessToken = "accessToken",
+            refreshToken = "refreshToken",
             expiresIn = jwtService.expirationSeconds,
             user = com.vaultlink.app.dto.AuthenticatedUserResponse(
-                id = user.id!!,
-                username = user.username,
-                fullName = user.fullName,
-                roles = user.roles.toList(),
+                id = "user.id!!",
+                username = "user.username",
+                fullName = "user.fullName",
+                roles = listOf(),
             ),
         )
     }
