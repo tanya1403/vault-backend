@@ -8,10 +8,10 @@ import MarkVaultRequest
 import ResponseDto
 import com.vaultlink.app.dto.ApiResponse
 import com.vaultlink.app.dto.LoginRequest
-import com.vaultlink.app.dto.LoginResponse
 import com.vaultlink.app.dto.LogoutRequest
 import com.vaultlink.app.dto.LogoutResponse
 import com.vaultlink.app.dto.LoginResponse
+import com.vaultlink.app.dto.PickupRequest
 import com.vaultlink.app.dto.RefreshTokenRequest
 import com.vaultlink.app.dto.RefreshTokenResponse
 import com.vaultlink.app.dto.UpdatePickupRequest
@@ -110,12 +110,6 @@ class VaultController(
 //        @RequestParam(required = true) status: String
 //    ): ResponseEntity<String> =
 //        vaultService.getPickupRequestsByStatus(status)
-    @PostMapping("/pickup-requests")
-    fun updatePickUpDetails(
-        @RequestParam(required = true) status: String
-    ): ResponseEntity<String> =
-        vaultService.getPickupRequestsByStatus(status)
-
 
     @GetMapping("/branches")
     fun getBranches(
