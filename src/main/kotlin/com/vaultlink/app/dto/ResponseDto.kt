@@ -20,7 +20,8 @@ data class DocumentDTO(
     val physicalCopy: String,
     val scannedCopy: String,
     val certifiedCopy: String,
-    val lodName: String
+    val lodName: String,
+    val vaultingDate: String?
 )
 data class BranchDTO(
     val branchId: String,

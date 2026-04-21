@@ -40,9 +40,7 @@ class VaultManagementService(
                 Branch_Name__c,
                 Branch_Name__r.Branch_Address_line_1__c,
                 No_Of_Files__c,
-                TYPEOF Owner
-                    WHEN User THEN MobilePhone, Name
-                END
+                Owner.Phone, Owner.Name
             FROM Documents_Pickup__c
             WHERE Pickup_Stage__c != 'Delivered'
             AND Pickup_Stage__c != 'Cancelled'
@@ -125,7 +123,6 @@ class VaultManagementService(
                 Document_Checklist__r.Opportunity__r.Name
             FROM Document_Item__c
             WHERE Document_Sent_to_Kleeto_Date__c != NULL
-            AND Vaulting_Date__c = NULL
             AND Document_Checklist__r.Service_Disbursal__r.Branch__c = '${commonHelper.escape(branchId)}'
         """.trimIndent())
 
@@ -270,13 +267,12 @@ class VaultManagementService(
 
         val query = StringBuilder("""
             SELECT Id, Name, Document_Category__c, Document_Subcategory__c, Type__c, Document_Label__c, Document_Status__c,
-            CreatedDate, Document_Sent_to_Kleeto_Date__c, Document_Checklist__r.Name,
+            CreatedDate, Document_Sent_to_Kleeto_Date__c, Document_Checklist__r.Name, Vaulting_Date__c,
             Document_Checklist__r.Number_Of_Physical_Copies__c, Document_Checklist__r.Number_Of_Scanned_Copies__c, 
             Document_Checklist__r.Number_Of_Certified_Copies__c
             FROM Document_Item__c
             WHERE CL_Contract_No_LAI__c = '$lai'
             AND Document_Sent_to_Kleeto_Date__c != NULL
-            AND Vaulting_Date__c = NULL
         """.trimIndent())
 
         if (!lastCreatedDate.isNullOrBlank()) {
@@ -306,7 +302,8 @@ class VaultManagementService(
                 physicalCopy = obj.optString("Document_Checklist__r.Number_Of_Physical_Copies__c"),
                 scannedCopy = obj.optString("Document_Checklist__r.Number_Of_Scanned_Copies__c"),
                 certifiedCopy = obj.optString("Document_Checklist__r.Number_Of_Certified_Copies__c"),
-                lodName = obj.optString("Document_Checklist__r.Name")
+                lodName = obj.optJSONObject("Document_Checklist__r")?.optString("Name") ?: "",
+                vaultingDate = obj.optString("Vaulting_Date__c")
             )
             println(ObjectMapper().writeValueAsString(dto))
 
