@@ -31,6 +31,10 @@ class SecurityConfig(
             .authorizeHttpRequests {
                 it.requestMatchers(HttpMethod.POST, "/vault/v1/login").permitAll()
                 it.requestMatchers(HttpMethod.POST, "/vault/v1/refresh").permitAll()
+                it.requestMatchers(HttpMethod.GET, "/vault/v1/branches").permitAll()
+                it.requestMatchers(HttpMethod.GET, "/vault/v1/lais").permitAll()
+                it.requestMatchers(HttpMethod.GET, "/vault/v1/documents").permitAll()
+                it.requestMatchers(HttpMethod.POST, "/vault/v1/vault/document/mark-vaulted").permitAll()
                 it.requestMatchers("/actuator/health", "/error").permitAll()
                 it.anyRequest().authenticated()
             }
