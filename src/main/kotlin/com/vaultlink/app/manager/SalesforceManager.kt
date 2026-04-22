@@ -139,10 +139,49 @@ Branch_Name__r.Branch_Address_line_2__c,
 
         return if (sfResponse.isSuccess) {
             log("updatePickupRequest - Updated Salesforce record successfully. Id: $recordId")
+
+            // If actualDate is provided, update related Document_Item__c records
+            if (!actualDate.isNullOrBlank()) {
+                try {
+                    val branchQuery = "SELECT Branch_Name__c FROM Documents_Pickup__c WHERE Id = '$recordId'"
+                    val branchResponse = sfConnection.get(branchQuery)
+                    val branchId = branchResponse?.optJSONArray("records")
+                        ?.optJSONObject(0)?.optString("Branch_Name__c")
+
+                    if (!branchId.isNullOrBlank()) {
+                        updateDocumentSentToKleetoDate(branchId, actualDate)
+                    }
+                } catch (e: Exception) {
+                    log("updatePickupRequest - Failed to update Document_Item__c records: ${e.message}")
+                }
+            }
+
             true
         } else {
             log("updatePickupRequest - Failed to update record. Id: $recordId, Response: $sfResponse")
             false
+        }
+    }
+
+    private fun updateDocumentSentToKleetoDate(branchId: String, sentDate: String) {
+        val query = """
+            SELECT Id FROM Document_Item__c 
+            WHERE Document_Checklist__r.Opportunity__r.Opportunity_Branch_New__c = '$branchId' AND Vaulting_Date__c = NULL
+        """.trimIndent()
+
+        val response = sfConnection.get(query)
+        val records = response?.optJSONArray("records") ?: return
+
+        log("updateDocumentSentToKleetoDate - Updating ${records.length()} documents for branch: $branchId")
+
+        val updateObj = JSONObject().put("Document_Sent_to_Kleeto_Date__c", sentDate)
+
+        for (i in 0 until records.length()) {
+            val docId = records.getJSONObject(i).optString("Id")
+            if (!docId.isNullOrBlank()) {
+                val endpoint = "/sobjects/Document_Item__c/$docId"
+                sfConnection.patch(updateObj, endpoint)
+            }
         }
     }
 }
