@@ -21,6 +21,7 @@ import com.vaultlink.app.utills.LoggerUtils.log
 import com.vaultlink.app.utills.MESSAGE
 import com.vaultlink.app.utills.OneResponse
 import jakarta.servlet.http.HttpServletRequest
+import org.json.JSONArray
 import org.json.JSONObject
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.BadCredentialsException
@@ -275,38 +276,31 @@ class VaultService(
     }
 
 
-    fun getPickupRequestsByStatus(status: String): ResponseEntity<ApiResponse<List<PickupRequest>>> {
+    fun getPickupRequestsByStatus(status: String): ResponseEntity<String> {
         if (status.isBlank()) {
-            return ResponseEntity.badRequest()
-                .body(ApiResponse.failure("Status parameter is required") as ApiResponse<List<PickupRequest>>)
+            return oneResponse.invalidData("Status parameter is required")
         }
 
         return try {
             val records = sfManager.fetchPickupRequestsByStatus(status)
-            println("DEBUG: Backend fetched ${records?.size} records for status: $status")
-            if (!records.isNullOrEmpty()) {
-                println("DEBUG: First record: ${records[0]}")
-            }
             if (records.isNullOrEmpty()) {
-                ResponseEntity.ok(
-                    ApiResponse.success(
-                        message = "No pickup request found for status '$status'",
-                        data = emptyList()
-                    )
+                oneResponse.getFailureResponse(
+                    JSONObject()
+                        .put("success", true)
+                        .put("message", "No pickup request found for status '$status'")
+                        .put("data", JSONArray())
                 )
             } else {
-                log("getPickupRequestsByStatus - Fetched ${records.size} pickup requests for status='$status'")
-                ResponseEntity.ok(
-                    ApiResponse.success(
-                        message = "Pickup requests fetched successfully",
-                        data = records
-                    )
+                oneResponse.getSuccessResponse(
+                    JSONObject()
+                        .put("success", true)
+                        .put("message", "Pickup requests fetched successfully")
+                        .put("data", JSONArray(records))
                 )
             }
         } catch (e: Exception) {
             log("getPickupRequestsByStatus - Exception: ${e.message}")
-            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.failure("Failed to fetch from Salesforce: ${e.message}") as ApiResponse<List<PickupRequest>>)
+            oneResponse.operationFailedResponse("Failed to fetch from Salesforce: ${e.message}")
         }
     }
 
@@ -353,20 +347,19 @@ class VaultService(
         }
     }
 
-    fun updatePickupRequest(request: UpdatePickupRequest?): ResponseEntity<Any> {
+    fun updatePickupRequest(request: UpdatePickupRequest?): ResponseEntity<String> {
         if (request == null) {
             logger.error("updatePickupRequest - Received null request body")
-            return ResponseEntity.badRequest().body(ApiResponse.failure("Request body is missing"))
+            return oneResponse.invalidData("Request body is missing")
         }
 
         return try {
             log("updatePickupRequest - Processing update for recordId: ${request.recordId}, status: ${request.status}")
-            
+
             // Check if manager is properly injected
             if (sfManager == null) {
                 logger.error("updatePickupRequest - sfManager is null (injection failure)")
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.failure("Internal service error: Salesforce integration unavailable"))
+                return oneResponse.operationFailedResponse("Internal service error: Salesforce integration unavailable")
             }
 
             // Using positional arguments to avoid CGLIB/Named parameter conflicts in Kotlin
@@ -380,28 +373,17 @@ class VaultService(
             )
 
             if (success) {
-                ResponseEntity.ok(
-                    ApiResponse.success(
-                        message = "Pickup date updated successfully",
-                        data = null
-                    )
+                oneResponse.getSuccessResponse(
+                    JSONObject()
+                        .put("success", true)
+                        .put("message", "Pickup date updated successfully")
                 )
             } else {
-                ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(
-                        ApiResponse.failure(
-                            message = "Failed to update Salesforce record"
-                        )
-                    )
+                oneResponse.operationFailedResponse("Failed to update Salesforce record")
             }
         } catch (e: Exception) {
             logger.error("Error updating pickup request", e)
-            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(
-                    ApiResponse.failure(
-                        message = "An error occurred while updating pickup request: ${e.message}"
-                    )
-                )
+            oneResponse.operationFailedResponse("An error occurred while updating pickup request: ${e.message}")
         }
     }
 }
