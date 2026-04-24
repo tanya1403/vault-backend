@@ -147,4 +147,14 @@ class VaultController(
             oneResponse.defaultFailureResponse
         }
     }
+
+    @PostMapping("/vault/lai/acknowledge")
+    fun acknowledgeLais(@RequestBody request: Map<String, List<String>>): ResponseEntity<String> {
+
+        val lais = request["lais"] ?: throw RuntimeException("LAIs are required")
+
+        vaultManagementService.acknowledgeLais(lais)
+
+        return ResponseEntity.ok("LAIs acknowledged successfully")
+    }
 }

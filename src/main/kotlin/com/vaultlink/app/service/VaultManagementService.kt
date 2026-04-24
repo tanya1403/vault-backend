@@ -7,7 +7,9 @@ import LaiDTO
 import MarkVaultRequest
 import ResponseDto
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.vaultlink.app.model.VaultLaiAcknowledgement
 import com.vaultlink.app.networking.SFConnection
+import com.vaultlink.app.repository.VaultLaiAckRepository
 import com.vaultlink.app.utills.CommonHelper
 import com.vaultlink.app.utills.DateTimeUtils
 import com.vaultlink.app.utills.OneResponse
@@ -21,7 +23,8 @@ import org.springframework.stereotype.Service
 class VaultManagementService(
     @Autowired val commonHelper: CommonHelper,
     @Autowired val sfConnection: SFConnection,
-    @Autowired val oneResponse: OneResponse
+    @Autowired val oneResponse: OneResponse,
+    @Autowired val vaultLaiAckRepository: VaultLaiAckRepository
 ) {
 
     private val FETCH_BATCH_SIZE = 200
@@ -371,6 +374,28 @@ class VaultManagementService(
         } catch (e: Exception) {
             oneResponse.operationFailedResponse("An unexpected error occurred: ${e.message}")
         }
+    }
+
+    fun acknowledgeLais(lais: List<String>) {
+
+        if (lais.isEmpty()) {
+            throw RuntimeException("LAI list cannot be empty")
+        }
+
+        val now = DateTimeUtils.getCurrentDateTimeInIST()
+
+        val records = lais.mapNotNull { lai ->
+            if (lai.isBlank()) return@mapNotNull null
+
+            VaultLaiAcknowledgement().apply {
+                this.lai = lai
+                acknowledgedAt = now
+                isNotified = false
+            }
+
+        }
+
+        vaultLaiAckRepository.saveAll(records)
     }
 
 }
