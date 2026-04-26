@@ -142,7 +142,7 @@ class VaultController(
         @RequestBody request: MarkVaultRequest
     ): ResponseEntity<String> {
         return try {
-            vaultManagementService.markDocumentAsVaulted(request)
+            vaultManagementService.markDocumentsAsVaulted(request)
         } catch (e: Exception) {
             oneResponse.defaultFailureResponse
         }
@@ -151,10 +151,12 @@ class VaultController(
     @PostMapping("/vault/lai/acknowledge")
     fun acknowledgeLais(@RequestBody request: Map<String, List<String>>): ResponseEntity<String> {
 
-        val lais = request["lais"] ?: throw RuntimeException("LAIs are required")
+        val lais = request["lais"] ?: return oneResponse.resourceNotFound("LAIs are required")
 
-        vaultManagementService.acknowledgeLais(lais)
-
-        return ResponseEntity.ok("LAIs acknowledged successfully")
+        return try {
+            vaultManagementService.acknowledgeLais(lais)
+        } catch (e: Exception) {
+            oneResponse.defaultFailureResponse
+        }
     }
 }
