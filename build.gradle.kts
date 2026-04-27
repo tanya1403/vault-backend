@@ -14,17 +14,6 @@ java.sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
     mavenCentral()
-    maven {
-        url = uri("https://maven.pkg.github.com/developernaolgithub/custom_apps_backend_utils")
-        credentials {
-            username = ("developernaol")
-            password = ("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")
-
-        }
-    }
-    maven {
-        setUrl("https://jitpack.io")
-    }
 }
 
 dependencies {
