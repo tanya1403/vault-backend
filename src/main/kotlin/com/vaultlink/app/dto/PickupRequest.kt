@@ -12,5 +12,6 @@ data class PickupRequest(
     val consignmentId: String,
     val ownerName: String,
     val status: String,
+    val ownerEmail: String? = null,
     val actualPickupDate: String? = null
 )

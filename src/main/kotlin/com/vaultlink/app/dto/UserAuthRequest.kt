@@ -44,3 +44,21 @@ data class ApiResponse<T>(
             ApiResponse(success = false, message = message)
     }
 }
+
+data class RegisterRequest(
+    @field:NotBlank(message = "username is required")
+    @field:Size(max = 150, message = "username must be at most 150 characters")
+    val username: String,
+
+    @field:NotBlank(message = "password is required")
+    @field:Size(min = 8, max = 128, message = "password must be between 8 and 128 characters")
+    val password: String,
+
+    @field:NotBlank(message = "fullName is required")
+    @field:Size(max = 150, message = "fullName must be at most 150 characters")
+    val fullName: String,
+
+    @field:NotBlank(message = "role is required")
+    val role: String,
+)
+

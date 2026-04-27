@@ -18,7 +18,7 @@ data class RefreshToken(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    val user: com.vaultlink.app.model.User = com.vaultlink.app.model.User(),
+    val user: User,
 
     @Column(name = "expires_at", nullable = false)
     val expiresAt: LocalDateTime = LocalDateTime.now().plusHours(48),

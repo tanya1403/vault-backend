@@ -14,6 +14,17 @@ java.sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
     mavenCentral()
+    maven {
+        url = uri("https://maven.pkg.github.com/developernaolgithub/custom_apps_backend_utils")
+        credentials {
+            username = ("developernaol")
+            password = ("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")
+
+        }
+    }
+    maven {
+        setUrl("https://jitpack.io")
+    }
 }
 
 dependencies {
@@ -74,6 +85,9 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.17.2")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.17.2")
+
+    implementation("com.homefirst:utilities:1.0.6")
+
 }
 
 tasks.withType<KotlinCompile> {

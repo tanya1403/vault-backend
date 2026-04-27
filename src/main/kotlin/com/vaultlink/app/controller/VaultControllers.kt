@@ -2,6 +2,7 @@ package com.vaultlink.app.controller
 
 import MarkVaultRequest
 import com.vaultlink.app.dto.LoginRequest
+import com.vaultlink.app.dto.RegisterRequest
 import com.vaultlink.app.dto.RefreshTokenRequest
 import com.vaultlink.app.service.VaultManagementService
 
@@ -22,6 +23,21 @@ class VaultController(
     private val vaultManagementService: VaultManagementService,
     @Autowired val oneResponse: OneResponse
 ) {
+
+    @PostMapping(
+        "/register",
+        produces = [MediaType.APPLICATION_JSON_VALUE],
+        consumes = [MediaType.APPLICATION_JSON_VALUE]
+    )
+    fun register(
+        @Valid @RequestBody request: RegisterRequest,
+    ): ResponseEntity<String> {
+        return try {
+            vaultService.register(request)
+        } catch (e: Exception) {
+            oneResponse.defaultFailureResponse
+        }
+    }
 
     @PostMapping(
         "/login",

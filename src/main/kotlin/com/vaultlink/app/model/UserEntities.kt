@@ -29,17 +29,20 @@ class User(
     var fullName: String = "",
     @Column(nullable = false)
     var enabled: Boolean = true,
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "vault_user_roles", joinColumns = [JoinColumn(name = "user_id")])
-    @Column(name = "role_name", nullable = false, length = 50)
-    var roles: MutableSet<String> = mutableSetOf("USER"),
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: Instant? = null,
     @Column(name = "updated_at")
     var updatedAt: Instant? = null,
     @Column(name = "last_login_at")
     var lastLoginAt: Instant? = null,
+    @Column(name = "refresh_token_last_used_at")
+    var refreshTokenLastUsedAt: Instant? = null,
 ) {
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "vault_user_roles", joinColumns = [JoinColumn(name = "user_id")])
+    @Column(name = "role_name", nullable = false, length = 50)
+    var roles: MutableSet<String> = mutableSetOf()
+
     @PrePersist
     fun onCreate() {
         val now = Instant.now()

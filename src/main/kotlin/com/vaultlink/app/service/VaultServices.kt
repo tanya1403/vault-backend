@@ -9,6 +9,7 @@ import com.vaultlink.app.dto.RefreshTokenResponse
 import com.vaultlink.app.dto.UpdatePickupRequest
 
 import com.vaultlink.app.manager.SalesforceManager
+import com.vaultlink.app.model.User
 import com.vaultlink.app.model.LoginAudit
 import com.vaultlink.app.model.RefreshToken
 import com.vaultlink.app.model.BlacklistedToken
@@ -17,9 +18,12 @@ import com.vaultlink.app.repository.UserRepository
 import com.vaultlink.app.repository.RefreshTokenRepository
 import com.vaultlink.app.repository.BlacklistedTokenRepository
 import com.vaultlink.app.security.JwtService
-import com.vaultlink.app.utills.LoggerUtils.log
+import com.vaultlink.app.dto.RegisterRequest
+import com.vaultlink.app.utills.STATUS
+import com.vaultlink.app.utills.SUCCESS
 import com.vaultlink.app.utills.MESSAGE
 import com.vaultlink.app.utills.OneResponse
+import com.vaultlink.app.utills.LoggerUtils.log
 import jakarta.servlet.http.HttpServletRequest
 import org.json.JSONArray
 import org.json.JSONObject
@@ -44,7 +48,9 @@ class VaultService(
     private val refreshTokenRepository: RefreshTokenRepository,
     private val blacklistedTokenRepository: BlacklistedTokenRepository,
     private val jwtService: JwtService,
-    @Autowired val sfManager: SalesforceManager
+    private val passwordEncoder: org.springframework.security.crypto.password.PasswordEncoder,
+    @Autowired val sfManager: SalesforceManager,
+    @Autowired val emailService: EmailService
 ) {
 
     private val logger = LoggerFactory.getLogger(VaultService::class.java)
@@ -115,6 +121,34 @@ class VaultService(
 //            ),
 //        )
 //    }
+    
+    @Transactional
+    fun register(request: RegisterRequest): ResponseEntity<String> {
+        val normalizedUsername = request.username.trim()
+
+        if (userRepository.existsByUsernameIgnoreCase(normalizedUsername)) {
+            return oneResponse.duplicateRecord("Username already exists")
+        }
+
+        logger.info("Registering user: $normalizedUsername with role: ${request.role}")
+
+        val user = User(
+            username = normalizedUsername,
+            passwordHash = passwordEncoder.encode(request.password),
+            fullName = request.fullName.trim(),
+            enabled = true,
+        )
+        user.roles.add(request.role.uppercase())
+
+        userRepository.save(user)
+
+        return oneResponse.getSuccessResponse(
+            JSONObject()
+                .put(STATUS, SUCCESS)
+                .put(MESSAGE, "User created successfully")
+                .put("userId", user.id)
+        )
+    }
 
     @Transactional
     fun login(
@@ -170,9 +204,17 @@ class VaultService(
         )
         refreshTokenRepository.save(refreshTokenEntity)
 
-        return oneResponse.getSuccessResponse(JSONObject().put("accessToken",accessToken)
-            .put("refreshToken",refreshToken)
-            .put("expiresIn",jwtService.expirationSeconds))
+        return oneResponse.getSuccessResponse(JSONObject()
+            .put("accessToken", accessToken)
+            .put("refreshToken", refreshToken)
+            .put("expiresIn", jwtService.expirationSeconds)
+            .put("user", JSONObject()
+                .put("id", user.id)
+                .put("username", user.username)
+                .put("fullName", user.fullName)
+                .put("roles", JSONArray(user.roles))
+            )
+        )
     }
 
     @Transactional
@@ -373,6 +415,24 @@ class VaultService(
             )
 
             if (success) {
+                // Send email notification if status moved to Scheduled
+                if (request.status == "Scheduled" || (request.status.isNullOrBlank() && !request.estimatedPickupDate.isNullOrBlank())) {
+                    try {
+                        request.recordId?.let { recordId ->
+                            val pickup = sfManager.fetchPickupRequestById(recordId)
+                            val ownerEmail = pickup?.ownerEmail ?: pickup?.csmBM?.takeIf { it.contains("@") }
+
+                            if (pickup != null && !ownerEmail.isNullOrBlank()) {
+                                emailService.sendPickupScheduledEmail(ownerEmail, pickup)
+                            } else {
+                                logger.warn("Could not send email: Owner email not found for recordId: $recordId")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        logger.error("Error triggering email notification", e)
+                    }
+                }
+
                 oneResponse.getSuccessResponse(
                     JSONObject()
                         .put("success", true)
