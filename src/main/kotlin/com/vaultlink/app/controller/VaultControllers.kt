@@ -1,6 +1,7 @@
 package com.vaultlink.app.controller
 
 import MarkVaultRequest
+import MarkSentToKleetoRequest
 import com.vaultlink.app.dto.LoginRequest
 import com.vaultlink.app.dto.RegisterRequest
 import com.vaultlink.app.dto.RefreshTokenRequest
@@ -158,6 +159,17 @@ class VaultController(
     ): ResponseEntity<String> {
         return try {
             vaultManagementService.markDocumentsAsVaulted(request)
+        } catch (e: Exception) {
+            oneResponse.defaultFailureResponse
+        }
+    }
+
+    @PostMapping("/vault/document/mark-sent-to-kleeto")
+    fun markSentToKleeto(
+        @RequestBody request: MarkSentToKleetoRequest
+    ): ResponseEntity<String> {
+        return try {
+            vaultManagementService.markDocumentsAsSentToKleeto(request)
         } catch (e: Exception) {
             oneResponse.defaultFailureResponse
         }

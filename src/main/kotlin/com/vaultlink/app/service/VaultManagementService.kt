@@ -1,6 +1,7 @@
 package com.vaultlink.app.service
 
 import MarkVaultRequest
+import MarkSentToKleetoRequest
 import com.vaultlink.app.dto.PickupRequest
 import com.vaultlink.app.helper.MailHelper
 import com.vaultlink.app.manager.SalesforceManager
@@ -8,6 +9,7 @@ import com.vaultlink.app.model.VaultLaiAcknowledgement
 import com.vaultlink.app.repository.VaultLaiAckRepository
 import com.vaultlink.app.utills.DateTimeUtils
 import com.vaultlink.app.utills.KAINAAT_EMAIL_ID
+import com.vaultlink.app.utills.LoggerUtils
 import com.vaultlink.app.utills.MESSAGE
 import com.vaultlink.app.utills.OneResponse
 import com.vaultlink.app.utills.RANAN_EMAIL_ID
@@ -18,6 +20,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
+import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 
 @Service
@@ -115,13 +118,45 @@ class VaultManagementService(
         }
     }
 
+    fun markDocumentsAsSentToKleeto(
+        request: MarkSentToKleetoRequest
+    ): ResponseEntity<String> {
+
+        if (request.documentIds.isEmpty()) {
+            return oneResponse.invalidData("Document Id is required")
+        }
+
+        return try {
+
+            val sentDate = request.sentToKleetoDate
+                ?: DateTimeUtils.getCurrentDate()
+
+            val success = sfManager.updateDocumentsSentToKleetoDate(
+                request.documentIds,
+                sentDate
+            )
+
+            if (!success) {
+                return oneResponse.operationFailedResponse("Failed to mark documents as sent to Kleeto")
+            }
+
+            oneResponse.getSuccessResponse(
+                JSONObject()
+                    .put("success", true)
+                    .put("message", "Documents marked as sent to Kleeto successfully.")
+            )
+        } catch (e: Exception) {
+            oneResponse.operationFailedResponse("An unexpected error occurred: ${e.message}")
+        }
+    }
+
     fun acknowledgeLais(lais: List<String>) : ResponseEntity<String> {
 
         if (lais.isEmpty()) {
             return oneResponse.resourceNotFound("LAI list cannot be empty")
         }
 
-        val now = DateTimeUtils.getCurrentDateTimeInIST()
+        val now = DateTimeUtils.getCurrentDate()
 
         val records = lais.mapNotNull { lai ->
             if (lai.isBlank()) return@mapNotNull null
@@ -136,32 +171,54 @@ class VaultManagementService(
 
         vaultLaiAckRepository.saveAll(records)
 
-        val totalAcknowledged = records.size
+        sendAcknowledgementMailAsync(records, now)
 
-        val sb = StringBuilder()
-        sb.append("Please find the LAI acknowledgement details below:")
-        sb.append("\n\nTotal LAIs Acknowledged : $totalAcknowledged")
-        sb.append("\nAcknowledged At : $now")
-        sb.append("\n\nAcknowledged LAIs:")
-
-        records.forEachIndexed { index, record ->
-            sb.append("\n${index + 1}. ${record.lai}")
-        }
-
-        sb.append("\n\n\nThis is an auto generated email. Please do not reply.")
-        sb.append("\n- Homefirst")
-
-        mailHelper.sendMimeMessage(
-            arrayOf("Kainaat.zaidi@homefirstindia.com"), // TODO: Ask who to send
-            "Vault Management - LAI Acknowledgement",
-            sb.toString(),
-            cc = arrayOf(
-                KAINAAT_EMAIL_ID
-            ) //RANAN_EMAIL_ID, SANJAY_EMAIL_ID, TANYA_EMAIL_ID,
-        )
         return oneResponse.getSuccessResponse(JSONObject().put(SUCCESS, true).put(MESSAGE, "LAIs acknowledged successfully."))
     }
 
+    @Async
+    fun sendAcknowledgementMailAsync(
+        records: List<VaultLaiAcknowledgement>,
+        acknowledgedAt: String
+    ) {
+        try {
+            val totalAcknowledged = records.size
+
+            val sb = StringBuilder()
+            sb.append("Please find the LAI acknowledgement details below:")
+            sb.append("\n\nTotal LAIs Acknowledged : $totalAcknowledged")
+            sb.append("\nAcknowledged At : $acknowledgedAt")
+            sb.append("\n\nAcknowledged LAIs:")
+
+            records.forEachIndexed { index, record ->
+                sb.append("\n${index + 1}. ${record.lai}")
+            }
+
+            sb.append("\n\n\nThis is an auto generated email. Please do not reply.")
+            sb.append("\n- Homefirst")
+
+            val mailSent = mailHelper.sendMimeMessage(
+                arrayOf("Kainaat.zaidi@homefirstindia.com"),
+                "Vault Management - LAI Acknowledgement",
+                sb.toString(),
+                cc = arrayOf(
+                    KAINAAT_EMAIL_ID
+                    // RANAN_EMAIL_ID, SANJAY_EMAIL_ID, TANYA_EMAIL_ID
+                )
+            )
+
+            if (mailSent) {
+                records.forEach {
+                    it.isNotified = true
+                }
+
+                vaultLaiAckRepository.saveAll(records)
+            }
+
+        } catch (e: Exception) {
+            LoggerUtils.log("Failed to send acknowledgement mail: ${e.message}")
+        }
+    }
 
     fun sendPickupScheduledEmail(toEmail: String, pickup: PickupRequest) : ResponseEntity<String> {
         return try {
@@ -175,4 +232,5 @@ class VaultManagementService(
             oneResponse.operationFailedResponse("Failed to send email: ${e.message}")
         }
     }
+
 }

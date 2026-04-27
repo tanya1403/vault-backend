@@ -342,6 +342,57 @@ class SFConnection(
         return lhResponse
     }
 
+    @Throws(java.lang.Exception::class)
+    fun bulkPatch(requestObject: JSONObject): LocalHTTPResponse? {
+
+        checkAndAuthenticate()
+
+        val lhResponse = LocalHTTPResponse()
+        val httpClient: HttpClient = HttpClientBuilder.create().build()
+        val uri = baseUri + "/composite/sobjects"
+
+        val httpPatch = HttpPatch(uri)
+        httpPatch.addHeader(oauthHeader)
+        httpPatch.addHeader(prettyPrintHeader)
+        val body = StringEntity(requestObject.toString(1))
+        body.setContentType(CONTENT_TYPE_APPLICATION_JSON)
+        httpPatch.entity = body
+        val response = httpClient.execute(httpPatch)
+        val statusCode = response.statusLine.statusCode
+
+        if (statusCode == 200) {
+            retryCount = 0
+            lhResponse.isSuccess = true
+            lhResponse.statusCode = statusCode
+            lhResponse.stringEntity = EntityUtils.toString(response.entity)
+        } else if (statusCode == 207) {
+            // Multi-Status: some might have failed, but request itself was successful
+            retryCount = 0
+            lhResponse.isSuccess = true
+            lhResponse.statusCode = statusCode
+            lhResponse.stringEntity = EntityUtils.toString(response.entity)
+        } else if (statusCode == 401 && retryCount < 3) {
+            println("Bulk PATCH Call was unsuccessful. Access token was expired: $statusCode")
+            baseUri = null
+            oauthHeader = null
+            retryCount++
+            authenticate()
+            return bulkPatch(requestObject)
+        } else {
+            retryCount = 0
+            log("Bulk PATCH - Call unsuccessful. Status code returned is  $statusCode  | error: ${response.statusLine}")
+            val errorResponse = getBody(response.entity.content)
+            log("Bulk PATCH - Error Response: $errorResponse")
+            lhResponse.isSuccess = false
+            lhResponse.statusCode = statusCode
+            lhResponse.message = "Bulk update failed"
+            if (errorResponse != null) {
+                lhResponse.errorMessage = errorResponse
+            }
+        }
+        return lhResponse
+    }
+
     fun getNextRecords(nextRecordsUrl: String): JSONObject? {
         try {
 
