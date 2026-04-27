@@ -9,7 +9,6 @@ import com.vaultlink.app.service.VaultService
 import com.vaultlink.app.utills.OneResponse
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
-import org.json.JSONObject
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
