@@ -296,6 +296,7 @@ Branch_Name__r.Branch_Address_line_2__c,
                     consignmentId = r.optString("Consignment_ID__c", "—"),
                     ownerName = ownerObj?.optString("Name") ?: "—",
                     ownerEmail = ownerObj?.optString("Email"),
+                    expectedPickupDate = r.optString("Expected_Pickup_Date__c", "—"),
                     status = r.optString("Pickup_Stage__c", "—"),
                     actualPickupDate = r.optString("Actual_Pickup_Date__c", "—")
                 )
@@ -347,6 +348,7 @@ Branch_Name__r.Branch_Address_line_2__c,
             consignmentId = r.optString("Consignment_ID__c", "—"),
             ownerName = ownerObj?.optString("Name") ?: "—",
             ownerEmail = ownerObj?.optString("Email"),
+            expectedPickupDate = r.optString("Expected_Pickup_Date__c", "—"),
             status = r.optString("Pickup_Stage__c", "—"),
             actualPickupDate = r.optString("Actual_Pickup_Date__c", "—")
         )

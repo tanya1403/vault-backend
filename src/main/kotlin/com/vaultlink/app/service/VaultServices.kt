@@ -50,7 +50,7 @@ class VaultService(
     private val jwtService: JwtService,
     private val passwordEncoder: org.springframework.security.crypto.password.PasswordEncoder,
     @Autowired val sfManager: SalesforceManager,
-//    @Autowired val emailService: EmailService
+    @Autowired val emailService: EmailService
 ) {
 
     private val logger = LoggerFactory.getLogger(VaultService::class.java)
@@ -404,6 +404,10 @@ class VaultService(
                 return oneResponse.operationFailedResponse("Internal service error: Salesforce integration unavailable")
             }
 
+            // Fetch current state before update to check for status transitions
+            val currentPickup = request.recordId?.let { sfManager.fetchPickupRequestById(it) }
+            val wasAlreadyScheduled = currentPickup?.status == "Scheduled" || currentPickup?.status == "Pickup scheduled"
+
             // Using positional arguments to avoid CGLIB/Named parameter conflicts in Kotlin
             val success = sfManager.updatePickupRequest(
                 request.recordId,
@@ -415,15 +419,19 @@ class VaultService(
             )
 
             if (success) {
-                // Send email notification if status moved to Scheduled
-                if (request.status == "Scheduled" || (request.status.isNullOrBlank() && !request.estimatedPickupDate.isNullOrBlank())) {
+                // Send email notification if status moved to Scheduled and was not previously scheduled
+                val isNowScheduled = request.status == "Scheduled" || request.status == "Pickup scheduled" || 
+                                    (request.status.isNullOrBlank() && !request.estimatedPickupDate.isNullOrBlank())
+                
+                if (isNowScheduled && !wasAlreadyScheduled) {
                     try {
                         request.recordId?.let { recordId ->
-                            val pickup = sfManager.fetchPickupRequestById(recordId)
-                            val ownerEmail = pickup?.ownerEmail ?: pickup?.csmBM?.takeIf { it.contains("@") }
+                            // Fetch updated record to get latest details (like Expected Pickup Date)
+                            val updatedPickup = sfManager.fetchPickupRequestById(recordId)
+                            val ownerEmail = updatedPickup?.ownerEmail ?: updatedPickup?.csmBM?.takeIf { it.contains("@") }
 
-                            if (pickup != null && !ownerEmail.isNullOrBlank()) {
-//                                emailService.sendPickupScheduledEmail(ownerEmail, pickup)
+                            if (updatedPickup != null && !ownerEmail.isNullOrBlank()) {
+                                emailService.sendPickupScheduledEmail(ownerEmail, updatedPickup)
                             } else {
                                 logger.warn("Could not send email: Owner email not found for recordId: $recordId")
                             }

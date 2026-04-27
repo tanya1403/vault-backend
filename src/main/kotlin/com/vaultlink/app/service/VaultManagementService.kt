@@ -1,6 +1,7 @@
 package com.vaultlink.app.service
 
 import MarkVaultRequest
+import com.vaultlink.app.dto.PickupRequest
 import com.vaultlink.app.helper.MailHelper
 import com.vaultlink.app.manager.SalesforceManager
 import com.vaultlink.app.model.VaultLaiAcknowledgement
@@ -24,7 +25,8 @@ class VaultManagementService(
     @Autowired val sfManager: SalesforceManager,
     @Autowired val oneResponse: OneResponse,
     @Autowired val vaultLaiAckRepository: VaultLaiAckRepository,
-    @Autowired val mailHelper: MailHelper
+    @Autowired val mailHelper: MailHelper,
+    @Autowired val emailService: EmailService
 ) {
 
     private val PAGE_SIZE = 50
@@ -160,4 +162,17 @@ class VaultManagementService(
         return oneResponse.getSuccessResponse(JSONObject().put(SUCCESS, true).put(MESSAGE, "LAIs acknowledged successfully."))
     }
 
+
+    fun sendPickupScheduledEmail(toEmail: String, pickup: PickupRequest) : ResponseEntity<String> {
+        return try {
+            emailService.sendPickupScheduledEmail(toEmail, pickup)
+            oneResponse.getSuccessResponse(
+                JSONObject()
+                    .put(SUCCESS, true)
+                    .put(MESSAGE, "Pickup scheduled email sent successfully.")
+            )
+        } catch (e: Exception) {
+            oneResponse.operationFailedResponse("Failed to send email: ${e.message}")
+        }
+    }
 }

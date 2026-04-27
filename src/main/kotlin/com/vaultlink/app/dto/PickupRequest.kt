@@ -13,5 +13,6 @@ data class PickupRequest(
     val ownerName: String,
     val status: String,
     val ownerEmail: String? = null,
+    val expectedPickupDate: String? = null,
     val actualPickupDate: String? = null
 )
