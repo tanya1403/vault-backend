@@ -10,7 +10,6 @@ import com.vaultlink.app.service.VaultService
 import com.vaultlink.app.utills.OneResponse
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
-import org.json.JSONObject
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -158,7 +157,19 @@ class VaultController(
         @RequestBody request: MarkVaultRequest
     ): ResponseEntity<String> {
         return try {
-            vaultManagementService.markDocumentAsVaulted(request)
+            vaultManagementService.markDocumentsAsVaulted(request)
+        } catch (e: Exception) {
+            oneResponse.defaultFailureResponse
+        }
+    }
+
+    @PostMapping("/vault/lai/acknowledge")
+    fun acknowledgeLais(@RequestBody request: Map<String, List<String>>): ResponseEntity<String> {
+
+        val lais = request["lais"] ?: return oneResponse.resourceNotFound("LAIs are required")
+
+        return try {
+            vaultManagementService.acknowledgeLais(lais)
         } catch (e: Exception) {
             oneResponse.defaultFailureResponse
         }

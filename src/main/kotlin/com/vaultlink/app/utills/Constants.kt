@@ -201,7 +201,7 @@ const val NOTIFICATION = "Notification"
 
 const val RANAN_EMAIL_ID = "ranan.rodrigues@homefirstindia.com"
 const val SANJAY_EMAIL_ID = "sanjay.jaiswar@homefirstindia.com"
-const val GAYATRI_EMAIL_ID = "kainaat.zaidi@homefirstindia.com"
+const val KAINAAT_EMAIL_ID = "kainaat.zaidi@homefirstindia.com"
 const val ATUL_EMAIL_ID = "atul.sharma@homefirstindia.com"
 const val TANYA_EMAIL_ID = "tanya.khurana@homefirstindia.com"
 const val SUDHISH_EMAIL_ID = "sudhish.sasidharan@homefirstindia.com"

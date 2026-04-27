@@ -1,5 +1,6 @@
 package com.vaultlink.app.security
 
+import com.vaultlink.app.utills.decryptAnyKey
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.Size
 import org.springframework.beans.factory.annotation.Value
@@ -7,11 +8,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.mail.javamail.JavaMailSender
+import org.springframework.mail.javamail.JavaMailSenderImpl
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.validation.annotation.Validated
+import java.util.Properties
 
 @Validated
 @ConfigurationProperties(prefix = "app.jwt")
@@ -53,6 +57,45 @@ enum class EnvProfile(
 @Configuration
 @EnableConfigurationProperties(JwtProperties::class, CorsProperties::class, SeedProperties::class)
 class AppProperty {
+
+//    companion object {
+//        private var _gDnrCred: Creds? = null
+//    }
+//
+//    private fun gDnrCred(): Creds? {
+//        if (null == _gDnrCred) {
+//            _gDnrCred = credentialManager.fetchCredentials(
+//                EnPartnerName.GOOGLE_DNR,
+//                EnCredType.PRODUCTION
+//            )
+//
+//            _gDnrCred?.apply {
+//                username = decryptAnyKey(username!!)
+//                password = decryptAnyKey(password!!)
+//            }
+//
+//        }
+//        return _gDnrCred
+//    }
+
+    @Bean
+    fun getJavaMailSender(): JavaMailSender {
+
+        val mailSender = JavaMailSenderImpl()
+        mailSender.host = "smtp.gmail.com"
+        mailSender.port = 587
+        mailSender.username = decryptAnyKey("ANVdPz/E1dCv/rtuPhl3liYmqgSm9VCSd82uCBwbmGA=")
+        mailSender.password = decryptAnyKey("A4x22x/S3bNyvDJQzLP738qurp6MpBGs8SfEFg9xAao=")
+
+        val props: Properties = mailSender.javaMailProperties
+        props["mail.transport.protocol"] = "smtp"
+        props["mail.smtp.auth"] = true
+        props["mail.smtp.starttls.enable"] = true
+        props["mail.debug"] = true
+
+        return mailSender
+
+    }
 
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()

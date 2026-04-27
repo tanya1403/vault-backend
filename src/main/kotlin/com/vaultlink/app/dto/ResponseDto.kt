@@ -4,8 +4,8 @@ data class CursorResponse<T>(
     val hasMore: Boolean
 )
 data class MarkVaultRequest(
-    val documentId: String,
-    val vaultingDate: String? = null // optional
+    val documentIds: List<String>,
+    val vaultingDate: String? = null
 )
 data class DocumentDTO(
     val id: String,
