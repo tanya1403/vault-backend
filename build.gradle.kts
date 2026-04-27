@@ -75,8 +75,6 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.17.2")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.17.2")
 
-    implementation("com.homefirst:utilities:1.0.6")
-
 }
 
 tasks.withType<KotlinCompile> {

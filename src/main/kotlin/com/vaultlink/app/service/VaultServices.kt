@@ -50,7 +50,7 @@ class VaultService(
     private val jwtService: JwtService,
     private val passwordEncoder: org.springframework.security.crypto.password.PasswordEncoder,
     @Autowired val sfManager: SalesforceManager,
-    @Autowired val emailService: EmailService
+//    @Autowired val emailService: EmailService
 ) {
 
     private val logger = LoggerFactory.getLogger(VaultService::class.java)
@@ -423,7 +423,7 @@ class VaultService(
                             val ownerEmail = pickup?.ownerEmail ?: pickup?.csmBM?.takeIf { it.contains("@") }
 
                             if (pickup != null && !ownerEmail.isNullOrBlank()) {
-                                emailService.sendPickupScheduledEmail(ownerEmail, pickup)
+//                                emailService.sendPickupScheduledEmail(ownerEmail, pickup)
                             } else {
                                 logger.warn("Could not send email: Owner email not found for recordId: $recordId")
                             }
