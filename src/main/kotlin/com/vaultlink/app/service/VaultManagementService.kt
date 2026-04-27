@@ -1,19 +1,11 @@
 package com.vaultlink.app.service
 
 import MarkVaultRequest
-import com.vaultlink.app.dto.PickupRequest
 import com.vaultlink.app.helper.MailHelper
 import com.vaultlink.app.manager.SalesforceManager
 import com.vaultlink.app.model.VaultLaiAcknowledgement
 import com.vaultlink.app.repository.VaultLaiAckRepository
-import com.vaultlink.app.utills.DateTimeUtils
-import com.vaultlink.app.utills.KAINAAT_EMAIL_ID
-import com.vaultlink.app.utills.MESSAGE
-import com.vaultlink.app.utills.OneResponse
-import com.vaultlink.app.utills.RANAN_EMAIL_ID
-import com.vaultlink.app.utills.SANJAY_EMAIL_ID
-import com.vaultlink.app.utills.SUCCESS
-import com.vaultlink.app.utills.TANYA_EMAIL_ID
+import com.vaultlink.app.utills.*
 import org.json.JSONArray
 import org.json.JSONObject
 import org.springframework.beans.factory.annotation.Autowired
@@ -26,7 +18,6 @@ class VaultManagementService(
     @Autowired val oneResponse: OneResponse,
     @Autowired val vaultLaiAckRepository: VaultLaiAckRepository,
     @Autowired val mailHelper: MailHelper,
-    @Autowired val emailService: EmailService
 ) {
 
     private val PAGE_SIZE = 50
@@ -160,19 +151,5 @@ class VaultManagementService(
             ) //RANAN_EMAIL_ID, SANJAY_EMAIL_ID, TANYA_EMAIL_ID,
         )
         return oneResponse.getSuccessResponse(JSONObject().put(SUCCESS, true).put(MESSAGE, "LAIs acknowledged successfully."))
-    }
-
-
-    fun sendPickupScheduledEmail(toEmail: String, pickup: PickupRequest) : ResponseEntity<String> {
-        return try {
-            emailService.sendPickupScheduledEmail(toEmail, pickup)
-            oneResponse.getSuccessResponse(
-                JSONObject()
-                    .put(SUCCESS, true)
-                    .put(MESSAGE, "Pickup scheduled email sent successfully.")
-            )
-        } catch (e: Exception) {
-            oneResponse.operationFailedResponse("Failed to send email: ${e.message}")
-        }
     }
 }

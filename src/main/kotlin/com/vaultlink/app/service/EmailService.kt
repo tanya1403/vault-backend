@@ -1,8 +1,7 @@
 package com.vaultlink.app.service
 
-import com.vaultlink.app.dto.PickupRequest
-import com.vaultlink.app.dto.UtilsMFile
 import com.vaultlink.app.dto.MFile
+import com.vaultlink.app.dto.PickupRequest
 import com.vaultlink.app.helper.MailHelper
 import com.vaultlink.app.security.AppProperty
 import com.vaultlink.app.utills.KAINAAT_EMAIL_ID
@@ -28,7 +27,7 @@ class EmailService(
         subject: String,
         bodyText: String,
         ccEmails: List<String> = emptyList(),
-        attachmentFiles: List<UtilsMFile> = emptyList(),
+        attachmentFiles: List<MFile> = emptyList(),
         isHtml: Boolean = true
     ) {
 

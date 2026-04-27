@@ -25,7 +25,7 @@ import java.util.*
 
 const val SO_OBJECT = "sobjects"
 
-enum class EnSFObjects(val value: String) {
+enum class SFObjects(val value: String) {
     CONTACT("/$SO_OBJECT/Contact/"),
     CASE("/$SO_OBJECT/Case/"),
     PROPERTY_INSIGHT("/sobjects/Property_Insight__c/"),
@@ -254,7 +254,7 @@ class SFConnection(
     }
 
     @Throws(java.lang.Exception::class)
-    fun post(requestObject: JSONObject, sfObject: EnSFObjects): LocalHTTPResponse {
+    fun post(requestObject: JSONObject, sfObject: SFObjects): LocalHTTPResponse {
 
         checkAndAuthenticate()
 
@@ -447,7 +447,7 @@ class SFConnection(
                 put("VersionData", fileBase64)
             }
 
-            val sfResponse = post(jsonObject, EnSFObjects.CONTENT_VERSION)
+            val sfResponse = post(jsonObject, SFObjects.CONTENT_VERSION)
 
             if (!sfResponse.isSuccess) {
                 log("uploadContentDocumentOnSF - Error: ${objectMapper.writeValueAsString(sfResponse)}")
@@ -482,7 +482,7 @@ class SFConnection(
                 put("ShareType", "V")
             }
 
-            val linkJsonResponse = post(linkJson, EnSFObjects.CONTENT_DOCUMENT_LINK)
+            val linkJsonResponse = post(linkJson, SFObjects.CONTENT_DOCUMENT_LINK)
 
             if (!linkJsonResponse.isSuccess)
                 log("uploadContentDocumentOnSF - Error: ${objectMapper.writeValueAsString(linkJsonResponse)}")

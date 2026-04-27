@@ -39,6 +39,8 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.web.multipart.MultipartFile
+import java.util.Base64
 
 @Service
 class VaultService(
@@ -389,7 +391,7 @@ class VaultService(
         }
     }
 
-    fun updatePickupRequest(request: UpdatePickupRequest?): ResponseEntity<String> {
+    fun updatePickupRequest(request: com.vaultlink.app.dto.UpdatePickupRequest?, file: MultipartFile? = null): ResponseEntity<String> {
         if (request == null) {
             logger.error("updatePickupRequest - Received null request body")
             return oneResponse.invalidData("Request body is missing")
@@ -420,7 +422,7 @@ class VaultService(
 
             if (success) {
                 // Send email notification if status moved to Scheduled and was not previously scheduled
-                val isNowScheduled = request.status == "Scheduled" || request.status == "Pickup scheduled" || 
+                val isNowScheduled = request.status == "Scheduled" || request.status == "Pickup scheduled" ||
                                     (request.status.isNullOrBlank() && !request.estimatedPickupDate.isNullOrBlank())
                 
                 if (isNowScheduled && !wasAlreadyScheduled) {
@@ -441,10 +443,21 @@ class VaultService(
                     }
                 }
 
+                // If a file is provided, upload it asynchronously
+                if (file != null && !request.recordId.isNullOrBlank()) {
+                    try {
+                        val base64 = Base64.getEncoder().encodeToString(file.bytes)
+                        val fileName = file.originalFilename ?: "pickup_document"
+                        sfManager.uploadContentDocumentOnSF(base64, fileName, request.recordId!!)
+                    } catch (e: Exception) {
+                        logger.error("Failed to initiate file upload after pickup update", e)
+                    }
+                }
+
                 oneResponse.getSuccessResponse(
                     JSONObject()
                         .put("success", true)
-                        .put("message", "Pickup date updated successfully")
+                        .put("message", "Pickup updated successfully")
                 )
             } else {
                 oneResponse.operationFailedResponse("Failed to update Salesforce record")

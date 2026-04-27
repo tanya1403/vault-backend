@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.multipart.MultipartFile
 
 @RestController
 @RequestMapping("/vault/v1")
@@ -102,13 +103,29 @@ class VaultController(
     @PostMapping(
         "/update-pickup-date",
         produces = [MediaType.APPLICATION_JSON_VALUE],
-        consumes = [MediaType.APPLICATION_JSON_VALUE]
+        consumes = [MediaType.MULTIPART_FORM_DATA_VALUE]
     )
     fun updatePickupDate(
-        @Valid @RequestBody request: com.vaultlink.app.dto.UpdatePickupRequest
+        @RequestParam("recordId") recordId: String,
+        @RequestParam("consignmentId", required = false) consignmentId: String?,
+        @RequestParam("pod", required = false) pod: String?,
+        @RequestParam("status", required = false) status: String?,
+        @RequestParam("actualPickupDate", required = false) actualPickupDate: String?,
+        @RequestParam("estimatedPickupDate", required = false) estimatedPickupDate: String?,
+        @RequestParam("deliveryDate", required = false) deliveryDate: String?,
+        @RequestParam("file", required = false) file: MultipartFile?
     ): ResponseEntity<String> {
+        val request = com.vaultlink.app.dto.UpdatePickupRequest(
+            recordId = recordId,
+            consignmentId = consignmentId,
+            pod = pod,
+            status = status,
+            actualPickupDate = actualPickupDate,
+            estimatedPickupDate = estimatedPickupDate,
+            deliveryDate = deliveryDate
+        )
         return try {
-            vaultService.updatePickupRequest(request)
+            vaultService.updatePickupRequest(request, file)
         } catch (e: Exception) {
             oneResponse.defaultFailureResponse
         }

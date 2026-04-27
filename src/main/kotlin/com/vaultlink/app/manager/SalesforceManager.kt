@@ -4,12 +4,16 @@ import BranchDTO
 import DocumentDTO
 import LaiDTO
 import com.vaultlink.app.dto.PickupRequest
-import com.vaultlink.app.networking.EnSFObjects
+import com.vaultlink.app.networking.SFObjects
 import com.vaultlink.app.networking.SFConnection
 import com.vaultlink.app.utills.LoggerUtils
+import com.vaultlink.app.utills.THREAD_POOL_TASK_EXECUTOR
+import com.vaultlink.app.utills.isInvalid
+import com.vaultlink.app.utills.LocalResponse
 import org.json.JSONArray
 import org.json.JSONObject
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 
 @Component
@@ -451,6 +455,67 @@ Branch_Name__r.Branch_Address_line_2__c,
             if (!docId.isNullOrBlank()) {
                 val endpoint = "/sobjects/Document_Item__c/$docId"
                 sfConnection.patch(updateObj, endpoint)
+            }
+        }
+    }
+
+    @Async(THREAD_POOL_TASK_EXECUTOR)
+    @Throws(Exception::class)
+    fun uploadContentDocumentOnSF(fileBase64: String, fileName: String, parentId: String): LocalResponse {
+
+        try {
+            val jsonObject = JSONObject().apply {
+                put("Title", fileName)
+                put("PathOnClient", fileName)
+                put("VersionData", fileBase64)
+            }
+
+            val sfResponse = sfConnection.post(jsonObject, SFObjects.CONTENT_VERSION)
+
+            if (!sfResponse.isSuccess) {
+                return LocalResponse().apply {
+                    this.message = "Failed to upload file"
+                }
+            }
+
+            val contentVersionId = JSONObject(sfResponse.stringEntity).optString("id")
+
+            if (contentVersionId.isInvalid()) {
+                log("uploadContentDocumentOnSF - Invalid content version Id")
+                return LocalResponse().apply {
+                    this.message = "Failed to upload file"
+                }
+            }
+
+            val contentDocResponse =
+                sfConnection.get("SELECT ContentDocumentId FROM ContentVersion WHERE Id = '$contentVersionId'")
+
+            val contentDocumentId = contentDocResponse?.takeIf { it.getInt("totalSize") > 0 }
+                ?.getJSONArray("records")?.getJSONObject(0)?.optString("ContentDocumentId")
+                ?: run {
+                    log("uploadContentDocumentOnSF - Failed to retrieve content document id")
+                    return LocalResponse().apply {
+                        this.message = "Failed to upload file"
+                    }
+                }
+
+            val linkJson = JSONObject().apply {
+                put("ContentDocumentId", contentDocumentId)
+                put("LinkedEntityId", parentId)
+                put("ShareType", "V")
+            }
+
+            val linkJsonResponse = sfConnection.post(linkJson, SFObjects.CONTENT_DOCUMENT_LINK)
+
+            return LocalResponse().apply {
+                isSuccess = linkJsonResponse.isSuccess
+                message = if (linkJsonResponse.isSuccess) "File uploaded successfully" else "Failed to upload file"
+            }
+
+        } catch (e: Exception) {
+            log("uploadContentDocumentOnSF - Exception: ${e.message}")
+            return LocalResponse().apply {
+                this.message = "Exception occurred: ${e.message}"
             }
         }
     }
