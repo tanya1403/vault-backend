@@ -39,7 +39,6 @@ dependencies {
     implementation("org.apache.httpcomponents:httpclient:4.5.13")
     implementation("com.fasterxml.jackson.core:jackson-core:2.13.4")
     implementation("com.opencsv:opencsv:5.7.1")
-    implementation("org.springframework.boot:spring-boot-starter-mail:2.7.5")
     implementation("com.amazonaws:aws-java-sdk-s3:1.12.452")
     implementation("com.itextpdf:kernel:7.2.3")
     implementation("com.itextpdf:layout:7.2.3")
@@ -66,6 +65,8 @@ dependencies {
 
 //	implementation("jakarta.validation:jakarta.validation-api:3.0.2")
 //	implementation("org.springframework.boot:spring-boot-starter-validation")
+
+    implementation("org.springframework.boot:spring-boot-starter-mail")
 
     implementation("io.jsonwebtoken:jjwt-api:0.11.5")
     implementation("io.jsonwebtoken:jjwt-impl:0.11.5")
