@@ -20,4 +20,8 @@ class VaultLaiAcknowledgement {
     var acknowledgedAt: String = DateTimeUtils.getCurrentDateTimeInIST()
 
     var isNotified: Boolean = false
+
+    var createDatetime: String? = DateTimeUtils.getCurrentDateTimeInIST()
+
+    var updateDatetime: String? = DateTimeUtils.getCurrentDateTimeInIST()
 }

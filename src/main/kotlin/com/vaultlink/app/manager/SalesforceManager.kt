@@ -40,7 +40,10 @@ class SalesforceManager(
                     Branch_Name__c,
                     Branch_Name__r.Branch_Address_line_1__c,
                     No_Of_Files__c,
-                    Owner.Phone, Owner.Name
+                    TYPEOF Owner 
+                        WHEN User THEN Name, MobilePhone, Phone
+                        WHEN Group THEN Name
+                    END
                 FROM Documents_Pickup__c
                 WHERE Pickup_Stage__c = 'Delivered'
             """.trimIndent())
@@ -168,7 +171,7 @@ class SalesforceManager(
         return Triple(laiMap.values.toList(), cursor, hasMore)
     }
 
-    fun getDocuments(lai: String, lastCreatedDate: String?, pageSize: Int): List<DocumentDTO> {
+    fun getDocuments(lai: String, lastId: String?, pageSize: Int): List<DocumentDTO> {
         val query = StringBuilder("""
             SELECT Id, Name, Document_Category__c, Document_Subcategory__c, Type__c, Document_Label__c, Document_Status__c,
             CreatedDate, Document_Sent_to_Kleeto_Date__c, Document_Checklist__r.Name, Vaulting_Date__c,
@@ -179,11 +182,11 @@ class SalesforceManager(
             AND Document_Sent_to_Kleeto_Date__c != NULL
         """.trimIndent())
 
-        if (!lastCreatedDate.isNullOrBlank()) {
-            query.append(" AND CreatedDate < $lastCreatedDate ")
+        if (!lastId.isNullOrBlank()) {
+            query.append(" AND Id < '${escape(lastId)}' ")
         }
 
-        query.append(" ORDER BY CreatedDate DESC LIMIT $pageSize")
+        query.append(" ORDER BY Id DESC LIMIT $pageSize")
 
         val response = sfConnection.get(query.toString())
         val records = response?.optJSONArray("records") ?: JSONArray()

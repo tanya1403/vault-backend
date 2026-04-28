@@ -66,13 +66,13 @@ class VaultManagementService(
         }
     }
 
-    fun getDocuments(lai: String, lastCreatedDate: String?): ResponseEntity<String> {
+    fun getDocuments(lai: String, lastId: String?): ResponseEntity<String> {
         return try {
-            val content = sfManager.getDocuments(lai, lastCreatedDate, PAGE_SIZE)
+            val content = sfManager.getDocuments(lai, lastId, PAGE_SIZE)
 
             val nextCursor =
                 if (content.isNotEmpty())
-                    content.last().createdDate
+                    content.last().id
                 else null
 
             val responseJson = JSONObject()
