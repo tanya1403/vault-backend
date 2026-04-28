@@ -10,15 +10,11 @@ import com.vaultlink.app.dto.UpdatePickupRequest
 
 import com.vaultlink.app.manager.SalesforceManager
 import com.vaultlink.app.model.User
-import com.vaultlink.app.model.LoginAudit
-import com.vaultlink.app.model.RefreshToken
-import com.vaultlink.app.model.BlacklistedToken
-import com.vaultlink.app.repository.LoginAuditRepository
 import com.vaultlink.app.repository.UserRepository
-import com.vaultlink.app.repository.RefreshTokenRepository
 import com.vaultlink.app.repository.BlacklistedTokenRepository
 import com.vaultlink.app.security.JwtService
 import com.vaultlink.app.dto.RegisterRequest
+import com.vaultlink.app.model.BlacklistedToken
 import com.vaultlink.app.utills.STATUS
 import com.vaultlink.app.utills.SUCCESS
 import com.vaultlink.app.utills.MESSAGE
@@ -47,7 +43,6 @@ class VaultService(
     private val authenticationManager: AuthenticationManager,
     private val userRepository: UserRepository,
     private val oneResponse: OneResponse,
-    private val refreshTokenRepository: RefreshTokenRepository,
     private val blacklistedTokenRepository: BlacklistedTokenRepository,
     private val jwtService: JwtService,
     private val passwordEncoder: org.springframework.security.crypto.password.PasswordEncoder,
@@ -180,31 +175,15 @@ class VaultService(
             throw BadCredentialsException("Invalid username or password")
         }
 
-        user.lastLoginAt = Instant.now()
-        userRepository.save(user)
-
-//        loginAuditRepository.save(
-//            LoginAudit(
-//                user = user,
-//                ipAddress = extractClientIp(httpRequest),
-//                userAgent = httpRequest.getHeader("User-Agent"),
-//            )
-//        )
-
-        // Revoke all existing refresh tokens for this user
-        refreshTokenRepository.revokeAllUserTokens(user.id!!, LocalDateTime.now())
-
-        // Generate new tokens
+        // Generate tokens
         val accessToken = jwtService.generateToken(user)
         val refreshToken = jwtService.generateRefreshToken()
-        // Store refresh token in database
-        val refreshTokenEntity = RefreshToken(
-            token = refreshToken,
-            user = user,
-            expiresAt = LocalDateTime.now().plusSeconds(jwtService.refreshExpirationSeconds),
-            createdAt = LocalDateTime.now()
-        )
-        refreshTokenRepository.save(refreshTokenEntity)
+
+        // Store refresh token directly on the user record
+        user.lastLoginAt = Instant.now()
+        user.refreshToken = refreshToken
+        user.refreshTokenExpiresAt = LocalDateTime.now().plusSeconds(jwtService.refreshExpirationSeconds)
+        userRepository.save(user)
 
         return oneResponse.getSuccessResponse(JSONObject()
             .put("accessToken", accessToken)
@@ -222,58 +201,42 @@ class VaultService(
     @Transactional
     fun refreshToken(request: RefreshTokenRequest): ResponseEntity<String> {
         logger.debug("Attempting to refresh token: ${request.refreshToken.take(8)}...")
-        
-        val storedRefreshToken = refreshTokenRepository.findByToken(request.refreshToken)
-            .orElseGet {
-                logger.debug("Refresh token not found in database")
+
+        val user = userRepository.findByRefreshToken(request.refreshToken)
+            ?: run {
+                logger.debug("Refresh token not found")
                 throw BadCredentialsException("Invalid refresh token")
             }
 
-        if (storedRefreshToken.isRevoked) {
-            logger.debug("Refresh token is revoked (revokedAt: ${storedRefreshToken.revokedAt})")
-            throw BadCredentialsException("Session expired: refresh token revoked")
-        }
-        
-        if (storedRefreshToken.expiresAt.isBefore(LocalDateTime.now())) {
-            logger.debug("Refresh token is expired (expiresAt: ${storedRefreshToken.expiresAt})")
+        if (user.refreshTokenExpiresAt?.isBefore(LocalDateTime.now()) != false) {
+            logger.debug("Refresh token is expired for user: ${user.username}")
             throw BadCredentialsException("Session expired: refresh token expired")
         }
 
-        val user = storedRefreshToken.user
         if (!user.enabled) {
             logger.debug("User ${user.username} is disabled")
             throw BadCredentialsException("User account is disabled")
         }
 
-        // Generate new access token
         val newAccessToken = jwtService.generateToken(user)
-        logger.debug("Successfully generated new access token for user: ${user.username}")
+        logger.debug("New access token issued for: ${user.username}")
 
-        // Update last used timestamp
-        val updatedRefreshToken = storedRefreshToken.copy(
-            lastUsedAt = LocalDateTime.now()
+        return oneResponse.getSuccessResponse(
+            JSONObject()
+                .put("accessToken", newAccessToken)
+                .put("expiresIn", jwtService.expirationSeconds)
+                .put("tokenType", "Bearer")
         )
-        refreshTokenRepository.save(updatedRefreshToken)
-
-        return oneResponse.getSuccessResponse(JSONObject().put("accessToken",newAccessToken)
-            .put("expiresIn",jwtService.expirationSeconds)
-            .put("tokenType", "Bearer"))
-
-//        return RefreshTokenResponse(
-//            accessToken = newAccessToken,
-//            expiresIn = jwtService.expirationSeconds,
-//            tokenType = "Bearer"
-//        )
     }
 
     @Transactional
-    fun logout(accessToken: String, refreshToken: String?) : ResponseEntity<String> {
+    fun logout(accessToken: String, refreshToken: String?): ResponseEntity<String> {
         try {
             val jti = jwtService.extractJti(accessToken)
             val userId = jwtService.extractUserId(accessToken)
             val expiresAt = LocalDateTime.now().plusSeconds(jwtService.expirationSeconds)
 
-            // Blacklist access token
+            // Blacklist the access token
             if (jti != null && userId != null) {
                 blacklistedTokenRepository.save(
                     BlacklistedToken(
@@ -286,23 +249,20 @@ class VaultService(
                 )
             }
 
+            // Clear the refresh token from the user record
             refreshToken?.let { token ->
-                val storedToken = refreshTokenRepository.findByToken(token)
-                if (storedToken.isPresent) {
-                    val revokedToken = storedToken.get().copy(
-                        isRevoked = true,
-                        revokedAt = LocalDateTime.now()
-                    )
-                    refreshTokenRepository.save(revokedToken)
+                val user = userRepository.findByRefreshToken(token)
+                if (user != null) {
+                    user.refreshToken = null
+                    user.refreshTokenExpiresAt = null
+                    userRepository.save(user)
                 }
             }
         } catch (e: Exception) {
-            // Keep logout idempotent while preserving server-side visibility.
             logger.warn("Error during logout flow", e)
             return oneResponse.defaultFailureResponse
-
         }
-       return oneResponse.getSuccessResponse(JSONObject().put(MESSAGE,"Logout successful"))
+        return oneResponse.getSuccessResponse(JSONObject().put(MESSAGE, "Logout successful"))
     }
 
     private fun extractClientIp(request: HttpServletRequest): String {

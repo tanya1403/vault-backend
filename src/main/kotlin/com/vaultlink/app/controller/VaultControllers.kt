@@ -149,10 +149,10 @@ class VaultController(
     @GetMapping("/documents")
     fun getDocuments(
         @RequestParam lai: String,
-        @RequestParam(required = false) lastCreatedDate: String?
+        @RequestParam(required = false) lastId: String?
     ): ResponseEntity<String> {
         return try {
-            vaultManagementService.getDocuments(lai, lastCreatedDate)
+            vaultManagementService.getDocuments(lai, lastId)
         } catch (e: Exception) {
             oneResponse.defaultFailureResponse
         }

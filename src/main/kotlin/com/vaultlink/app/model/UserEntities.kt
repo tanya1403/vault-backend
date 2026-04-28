@@ -9,11 +9,11 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
-import jakarta.persistence.ManyToOne
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import java.time.Instant
+import java.time.LocalDateTime
 
 @Entity
 @Table(name = "vault_users")
@@ -37,6 +37,14 @@ class User(
     var lastLoginAt: Instant? = null,
     @Column(name = "refresh_token_last_used_at")
     var refreshTokenLastUsedAt: Instant? = null,
+
+    /** The current active refresh token for this user. Null when logged out. */
+    @Column(name = "refresh_token", length = 512, unique = true)
+    var refreshToken: String? = null,
+
+    /** Expiry of the refresh token stored above. */
+    @Column(name = "refresh_token_expires_at")
+    var refreshTokenExpiresAt: LocalDateTime? = null,
 ) {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "vault_user_roles", joinColumns = [JoinColumn(name = "user_id")])
@@ -56,19 +64,3 @@ class User(
     }
 }
 
-@Entity
-@Table(name = "vault_login_audits")
-class LoginAudit(
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    var id: String? = null,
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    var user: User,
-    @Column(name = "logged_in_at", nullable = false, updatable = false)
-    var loggedInAt: Instant = Instant.now(),
-    @Column(name = "ip_address", length = 64)
-    var ipAddress: String? = null,
-    @Column(name = "user_agent", length = 512)
-    var userAgent: String? = null,
-)
