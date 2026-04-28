@@ -6,6 +6,9 @@ import LaiDTO
 import com.vaultlink.app.dto.PickupRequest
 import com.vaultlink.app.networking.SFObjects
 import com.vaultlink.app.networking.SFConnection
+import com.vaultlink.app.utills.DateTimeFormat
+import com.vaultlink.app.utills.DateTimeUtils
+import com.vaultlink.app.utills.DateTimeUtils.formatSFDate
 import com.vaultlink.app.utills.LoggerUtils
 import com.vaultlink.app.utills.THREAD_POOL_TASK_EXECUTOR
 import com.vaultlink.app.utills.isInvalid
@@ -206,12 +209,12 @@ class SalesforceManager(
                 type = obj.optString("Type__c"),
                 status = obj.optString("Document_Status__c"),
                 createdDate = obj.optString("CreatedDate"),
-                sentToKleeto = obj.optString("Document_Sent_to_Kleeto_Date__c"),
+                sentToKleeto = formatSFDate(obj.optString("Document_Sent_to_Kleeto_Date__c")),
                 physicalCopy = checklistObj?.optString("Number_Of_Physical_Copies__c") ?: "",
                 scannedCopy = checklistObj?.optString("Number_Of_Scanned_Copies__c") ?: "",
                 certifiedCopy = checklistObj?.optString("Number_Of_Certified_Copies__c") ?: "",
                 lodName = checklistObj?.optString("Name") ?: "",
-                vaultingDate = obj.optString("Vaulting_Date__c")
+                vaultingDate = formatSFDate(obj.optString("Vaulting_Date__c"))
             ))
         }
         return content
@@ -346,13 +349,13 @@ Branch_Name__r.Branch_Address_line_2__c,
                     mobile = ownerObj?.optString("MobilePhone") ?: "—",
                     noOfFiles = r.optInt("No_Of_Files__c", 0),
                     noOfBoxes = r.optInt("Number_Of_Boxes__c", 0),
-                    requestedDate = r.optString("Requested_Pickup_Date__c", r.optString("Pickup_Date__c", "—")),
+                    requestedDate = formatSFDate(r.optString("Requested_Pickup_Date__c", null)),
                     consignmentId = r.optString("Consignment_ID__c", "—"),
                     ownerName = ownerObj?.optString("Name") ?: "—",
                     ownerEmail = ownerObj?.optString("Email"),
-                    expectedPickupDate = r.optString("Expected_Pickup_Date__c", "—"),
+                    expectedPickupDate = formatSFDate(r.optString("Expected_Pickup_Date__c", null)),
                     status = r.optString("Pickup_Stage__c", "—"),
-                    actualPickupDate = r.optString("Actual_Pickup_Date__c", "—")
+                    actualPickupDate = formatSFDate(r.optString("Actual_Pickup_Date__c", null))
                 )
             )
         }
@@ -398,13 +401,13 @@ Branch_Name__r.Branch_Address_line_2__c,
             mobile = ownerObj?.optString("MobilePhone") ?: "—",
             noOfFiles = r.optInt("No_Of_Files__c", 0),
             noOfBoxes = r.optInt("Number_Of_Boxes__c", 0),
-            requestedDate = r.optString("Requested_Pickup_Date__c", "—"),
+            requestedDate = formatSFDate(r.optString("Requested_Pickup_Date__c", null)),
             consignmentId = r.optString("Consignment_ID__c", "—"),
             ownerName = ownerObj?.optString("Name") ?: "—",
             ownerEmail = ownerObj?.optString("Email"),
-            expectedPickupDate = r.optString("Expected_Pickup_Date__c", "—"),
+            expectedPickupDate = formatSFDate(r.optString("Expected_Pickup_Date__c", null)),
             status = r.optString("Pickup_Stage__c", "—"),
-            actualPickupDate = r.optString("Actual_Pickup_Date__c", "—")
+            actualPickupDate = formatSFDate(r.optString("Actual_Pickup_Date__c", null))
         )
     }
 

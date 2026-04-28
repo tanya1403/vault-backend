@@ -372,4 +372,12 @@ object DateTimeUtils {
         }
     }
 
+    fun formatSFDate(raw: String?): String {
+        if (raw.isNullOrBlank() || raw == "—") return "—"
+        return runCatching {
+            DateTimeUtils.getStringFromDateTimeString(
+                raw, DateTimeFormat.yyyy_MM_dd, DateTimeFormat.d_EEE_yyyy
+            ) ?: "—"
+        }.getOrElse { raw }
+    }
 }

@@ -59,14 +59,6 @@ class EmailService(
 
     fun sendPickupScheduledEmail(toEmail: String, pickup: PickupRequest) {
         val subject = "Pickup Scheduled - ${pickup.branchName}"
-        val requestedDate = if (!pickup.requestedDate.isNullOrBlank() && pickup.requestedDate != "—")
-            runCatching { DateTimeUtils.getStringFromDateTimeString(pickup.requestedDate, DateTimeFormat.yyyy_MM_dd, DateTimeFormat.dd_MM_yyyy) }.getOrElse { pickup.requestedDate }
-        else pickup.requestedDate ?: "—"
-
-        val rawExpected = pickup.expectedPickupDate ?: ""
-        val expectedDate = if (rawExpected.isNotBlank() && rawExpected != "—")
-            runCatching { DateTimeUtils.getStringFromDateTimeString(rawExpected, DateTimeFormat.yyyy_MM_dd, DateTimeFormat.dd_MM_yyyy) }.getOrElse { rawExpected }
-        else "—"
 
         val sfRecordUrl = "${appProperty.sfUIURL}/lightning/r/Documents_Pickup__c/${pickup.id}/view"
 
@@ -78,8 +70,8 @@ class EmailService(
             Branch Name       : ${pickup.branchName}
             Branch Address    : ${pickup.branchAddress}
             CSM / BM          : ${pickup.csmBM}
-            Requested Date    : $requestedDate
-            Scheduled Date    : $expectedDate
+            Requested Date    : ${pickup.requestedDate}
+            Scheduled Date    : ${pickup.expectedPickupDate ?: "—"}
             Current Stage     : Pickup Scheduled
 
             Please take the necessary actions to ensure documents are ready.
