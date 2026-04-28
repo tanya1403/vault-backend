@@ -7,6 +7,10 @@ data class MarkVaultRequest(
     val documentIds: List<String>,
     val vaultingDate: String? = null
 )
+data class MarkSentToKleetoRequest(
+    val documentIds: List<String>,
+    val sentToKleetoDate: String? = null
+)
 data class DocumentDTO(
     val id: String,
     val name: String,

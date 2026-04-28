@@ -391,7 +391,7 @@ class VaultService(
         }
     }
 
-    fun updatePickupRequest(request: com.vaultlink.app.dto.UpdatePickupRequest?, file: MultipartFile? = null): ResponseEntity<String> {
+    fun updatePickupRequest(request: UpdatePickupRequest?): ResponseEntity<String> {
         if (request == null) {
             logger.error("updatePickupRequest - Received null request body")
             return oneResponse.invalidData("Request body is missing")
@@ -421,7 +421,6 @@ class VaultService(
             )
 
             if (success) {
-                // Send email notification if status moved to Scheduled and was not previously scheduled
                 val isNowScheduled = request.status == "Scheduled" || request.status == "Pickup scheduled" ||
                                     (request.status.isNullOrBlank() && !request.estimatedPickupDate.isNullOrBlank())
                 
@@ -444,11 +443,11 @@ class VaultService(
                 }
 
                 // If a file is provided, upload it asynchronously
-                if (file != null && !request.recordId.isNullOrBlank()) {
+                if (request.file != null && !request.file.isEmpty && !request.recordId.isNullOrBlank()) {
                     try {
-                        val base64 = Base64.getEncoder().encodeToString(file.bytes)
-                        val fileName = file.originalFilename ?: "pickup_document"
-                        sfManager.uploadContentDocumentOnSF(base64, fileName, request.recordId!!)
+                        val base64 = Base64.getEncoder().encodeToString(request.file.bytes)
+                        val fileName = request.file.originalFilename ?: "pickup_document"
+                        sfManager.uploadContentDocumentOnSF(base64, fileName, request.recordId)
                     } catch (e: Exception) {
                         logger.error("Failed to initiate file upload after pickup update", e)
                     }

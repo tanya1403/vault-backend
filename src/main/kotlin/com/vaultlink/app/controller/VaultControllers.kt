@@ -1,9 +1,11 @@
 package com.vaultlink.app.controller
 
 import MarkVaultRequest
+import MarkSentToKleetoRequest
 import com.vaultlink.app.dto.LoginRequest
 import com.vaultlink.app.dto.RegisterRequest
 import com.vaultlink.app.dto.RefreshTokenRequest
+import com.vaultlink.app.dto.UpdatePickupRequest
 import com.vaultlink.app.service.VaultManagementService
 
 import com.vaultlink.app.service.VaultService
@@ -103,29 +105,16 @@ class VaultController(
     @PostMapping(
         "/update-pickup-date",
         produces = [MediaType.APPLICATION_JSON_VALUE],
-        consumes = [MediaType.MULTIPART_FORM_DATA_VALUE]
+        consumes = [
+            MediaType.MULTIPART_FORM_DATA_VALUE,
+            MediaType.APPLICATION_JSON_VALUE
+        ]
     )
     fun updatePickupDate(
-        @RequestParam("recordId") recordId: String,
-        @RequestParam("consignmentId", required = false) consignmentId: String?,
-        @RequestParam("pod", required = false) pod: String?,
-        @RequestParam("status", required = false) status: String?,
-        @RequestParam("actualPickupDate", required = false) actualPickupDate: String?,
-        @RequestParam("estimatedPickupDate", required = false) estimatedPickupDate: String?,
-        @RequestParam("deliveryDate", required = false) deliveryDate: String?,
-        @RequestParam("file", required = false) file: MultipartFile?
+        @ModelAttribute request: UpdatePickupRequest
     ): ResponseEntity<String> {
-        val request = com.vaultlink.app.dto.UpdatePickupRequest(
-            recordId = recordId,
-            consignmentId = consignmentId,
-            pod = pod,
-            status = status,
-            actualPickupDate = actualPickupDate,
-            estimatedPickupDate = estimatedPickupDate,
-            deliveryDate = deliveryDate
-        )
         return try {
-            vaultService.updatePickupRequest(request, file)
+            vaultService.updatePickupRequest(request)
         } catch (e: Exception) {
             oneResponse.defaultFailureResponse
         }
@@ -175,6 +164,17 @@ class VaultController(
     ): ResponseEntity<String> {
         return try {
             vaultManagementService.markDocumentsAsVaulted(request)
+        } catch (e: Exception) {
+            oneResponse.defaultFailureResponse
+        }
+    }
+
+    @PostMapping("/vault/document/mark-sent-to-kleeto")
+    fun markSentToKleeto(
+        @RequestBody request: MarkSentToKleetoRequest
+    ): ResponseEntity<String> {
+        return try {
+            vaultManagementService.markDocumentsAsSentToKleeto(request)
         } catch (e: Exception) {
             oneResponse.defaultFailureResponse
         }

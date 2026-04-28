@@ -223,23 +223,73 @@ class SalesforceManager(
     ): Boolean {
 
         if (documentIds.isEmpty()) {
-            return false
+            return true
         }
 
-        for (documentId in documentIds) {
+        val chunks = documentIds.chunked(200)
+        var allSuccess = true
+
+        for (chunk in chunks) {
+            val bulkRecords = JSONArray()
+            for (id in chunk) {
+                val record = JSONObject().apply {
+                    put("attributes", JSONObject().put("type", "Document_Item__c"))
+                    put("id", id)
+                    put("Vaulting_Date__c", vaultingDate)
+                }
+                bulkRecords.put(record)
+            }
+
             val requestBody = JSONObject()
-                .put("Vaulting_Date__c", vaultingDate)
+                .put("allOrNone", false)
+                .put("records", bulkRecords)
 
-            val endpoint = "/sobjects/Document_Item__c/$documentId"
-
-            val response = sfConnection.patch(requestBody, endpoint)
-
-            if (response?.isSuccess != true) {
-                return false
+            val response = sfConnection.bulkPatch(requestBody)
+            if (response == null || !response.isSuccess) {
+                log("updateDocumentsVaultingDate - Batch update failed: ${response?.errorMessage ?: "Unknown error"}")
+                allSuccess = false
             }
         }
 
-        return true
+        return allSuccess
+    }
+
+
+    fun updateDocumentsSentToKleetoDate(
+        documentIds: List<String>,
+        sentToKleetoDate: String
+    ): Boolean {
+
+        if (documentIds.isEmpty()) {
+            return true
+        }
+
+        val chunks = documentIds.chunked(200)
+        var allSuccess = true
+
+        for (chunk in chunks) {
+            val bulkRecords = JSONArray()
+            for (id in chunk) {
+                val record = JSONObject().apply {
+                    put("attributes", JSONObject().put("type", "Document_Item__c"))
+                    put("id", id)
+                    put("Document_Sent_to_Kleeto_Date__c", sentToKleetoDate)
+                }
+                bulkRecords.put(record)
+            }
+
+            val requestBody = JSONObject()
+                .put("allOrNone", false)
+                .put("records", bulkRecords)
+
+            val response = sfConnection.bulkPatch(requestBody)
+            if (response == null || !response.isSuccess) {
+                log("updateDocumentsSentToKleetoDatePublic - Batch update failed: ${response?.errorMessage ?: "Unknown error"}")
+                allSuccess = false
+            }
+        }
+
+        return allSuccess
     }
 
 
@@ -293,7 +343,7 @@ Branch_Name__r.Branch_Address_line_2__c,
                     branchName = branchObj?.optString("Name") ?: "—",
                     branchAddress = branchObj?.optString("Branch_Address_line_1__c") ?: "—",
                     csmBM = r.optString("BM_BMD__c", "—"),
-                    mobile = "—", // Field not in query yet
+                    mobile = ownerObj?.optString("MobilePhone") ?: "—",
                     noOfFiles = r.optInt("No_Of_Files__c", 0),
                     noOfBoxes = r.optInt("Number_Of_Boxes__c", 0),
                     requestedDate = r.optString("Requested_Pickup_Date__c", r.optString("Pickup_Date__c", "—")),
@@ -314,11 +364,11 @@ Branch_Name__r.Branch_Address_line_2__c,
             """
                 SELECT 
                 Id,
-                OwnerId,
-                TYPEOF Owner
-                    WHEN User THEN MobilePhone, Name, Email
+                TYPEOF Owner 
+                WHEN User THEN Name, MobilePhone, Email
                 END,
                 Branch_Name__r.Name,
+                OwnerId,
                 Branch_Name__r.Branch_Address_line_1__c, 
                 Branch_Name__r.Branch_Address_line_2__c, 
                 BM_BMD__c,
@@ -345,7 +395,7 @@ Branch_Name__r.Branch_Address_line_2__c,
             branchName = branchObj?.optString("Name") ?: "—",
             branchAddress = branchObj?.optString("Branch_Address_line_1__c") ?: "—",
             csmBM = r.optString("BM_BMD__c", "—"),
-            mobile = "—",
+            mobile = ownerObj?.optString("MobilePhone") ?: "—",
             noOfFiles = r.optInt("No_Of_Files__c", 0),
             noOfBoxes = r.optInt("Number_Of_Boxes__c", 0),
             requestedDate = r.optString("Requested_Pickup_Date__c", "—"),
@@ -446,15 +496,41 @@ Branch_Name__r.Branch_Address_line_2__c,
         val response = sfConnection.get(query)
         val records = response?.optJSONArray("records") ?: return
 
-        log("updateDocumentSentToKleetoDate - Updating ${records.length()} documents for branch: $branchId")
+        val totalRecords = records.length()
+        if (totalRecords == 0) return
 
-        val updateObj = JSONObject().put("Document_Sent_to_Kleeto_Date__c", sentDate)
+        log("updateDocumentSentToKleetoDate - Updating $totalRecords documents in bulk for branch: $branchId")
 
-        for (i in 0 until records.length()) {
+        val docIds = mutableListOf<String>()
+        for (i in 0 until totalRecords) {
             val docId = records.getJSONObject(i).optString("Id")
             if (!docId.isNullOrBlank()) {
-                val endpoint = "/sobjects/Document_Item__c/$docId"
-                sfConnection.patch(updateObj, endpoint)
+                docIds.add(docId)
+            }
+        }
+
+        val chunks = docIds.chunked(200)
+
+        for (chunk in chunks) {
+            val bulkRecords = JSONArray()
+            for (id in chunk) {
+                val record = JSONObject().apply {
+                    put("attributes", JSONObject().put("type", "Document_Item__c"))
+                    put("id", id)
+                    put("Document_Sent_to_Kleeto_Date__c", sentDate)
+                }
+                bulkRecords.put(record)
+            }
+
+            val requestBody = JSONObject()
+                .put("allOrNone", false)
+                .put("records", bulkRecords)
+
+            val sfResponse = sfConnection.bulkPatch(requestBody)
+            if (sfResponse == null || !sfResponse.isSuccess) {
+                log("updateDocumentSentToKleetoDate - Batch update failed: ${sfResponse?.errorMessage ?: "Unknown error"}")
+            } else {
+                log("updateDocumentSentToKleetoDate - Batch of ${chunk.size} documents updated successfully")
             }
         }
     }

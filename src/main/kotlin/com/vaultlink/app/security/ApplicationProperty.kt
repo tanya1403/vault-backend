@@ -119,59 +119,14 @@ class AppProperty {
     @Value("\${application.key.salt:}")
     lateinit var salt: String
 
-    @Value("\${application.flags.isSalesforceLive:false}")
-    var isSalesforceLive: Boolean = false
-
     @Value("\${application.key.mamasSpaghetti:}")
     lateinit var  mamasSpaghetti: String
-
-    @Value("\${application.path.fileIdentifierURL:}")
-    lateinit var  fileIdentifierURL: String
 
     @Value("\${application.key.mamasSalt:}")
     lateinit var  mamasSalt: String
 
-    @Value("\${application.path.files:}")
-    lateinit var  filePath: String
-
-    @Value("\${application.path.smsDispositionURL:}")
-    lateinit var smsDispositionURL: String
-
-    @Value("\${application.s3Bucket.name:}")
-    lateinit var s3BucketName: String
-
-    @Value("\${application.s3LogBucket.name:}")
-    lateinit var s3LogBucketName: String
-
-    @Value("\${application.s3Bucket.region:}")
-    lateinit var s3BucketRegion: String
-
     @Value("\${spring.mail.username:}")
     lateinit var senderEmail: String
-
-    @Value("\${application.path.callDispositionURL:}")
-    lateinit var callDispositionURL: String
-
-    @Value("\${application.path.pulseCallDispositionURL:}")
-    lateinit var pulseCallDispositionURL: String
-
-    @Value("\${application.path.digiDispositionURL:}")
-    lateinit var digiDispositionURL: String
-
-    @Value("\${application.key.runScheduler:false}")
-    var  runScheduler: Boolean = false
-
-    @Value("\${application.key.backupLog:false}")
-    var  backupLog: Boolean = false
-
-    @Value("\${application.key.isStrictProdProcessActive:false}")
-    var  isStrictProdProcessActive: Boolean = false
-
-    @Value("\${application.key.msg.templateId:}")
-    lateinit var  msgTemplateId: String
-
-    @Value("\${application.key.google_group_orcas:}")
-    lateinit var  googleGroupOrcasCallbackUrl: String
 
     @Value("\${application.salesforce.username:}")
     lateinit var sfUserName: String
@@ -179,24 +134,10 @@ class AppProperty {
     @Value("\${application.salesforce.url:}")
     lateinit var sfURL: String
 
+    @Value("\${application.salesforce.UIurl:}")
+    lateinit var sfUIURL: String
+
     @Value("\${application.salesforce.clientID:}")
     lateinit var sfClientID: String
 
-    @Value("\${application.aws.accessKey:}")
-    lateinit var awsAccessKey: String
-
-    @Value("\${application.aws.secretKey:}")
-    lateinit var awsSecretKey: String
-
-    @Value("\${application.hffc.certificate:}")
-    lateinit var  hffcCertificate: String
-
-    @Value("\${application.hffc.privatekey:}")
-    lateinit var  hffcPrivateKey: String
-
-    @Value("\${application.axis.encryption:}")
-    lateinit var axisEncryptionKey: String
-
-    @Value("\${application.axis.p12:}")
-    lateinit var axisP12Key: String
 }
